@@ -41,7 +41,6 @@ function NeuronGUI:OnEnable()
 
     NeuronGUI:CreateBarEditor()
     editorFrame:Hide()
-    editorFrame.isHidden = true
     NeuronGUI.GUILoaded = true
 
 end
@@ -67,8 +66,6 @@ local function round(num, idp)
     local mult = 10^(idp or 0)
     return math.floor(num * mult + 0.5) / mult
 end
-
-
 ----------------------------------------------------------------
 
 
@@ -78,13 +75,11 @@ end
 -----------------------------------------------------------------------------
 
 
-function NeuronGUI:ToggleEditor()
-    if editorFrame.isHidden == true then
+function NeuronGUI:ToggleEditor(hideorshow)
+    if hideorshow == "show" then
         editorFrame:Show()
-        editorFrame.isHidden = false
-    else
+    elseif hideorshow == "hide" then
         editorFrame:Hide()
-        editorFrame.isHidden = true
     end
 end
 
@@ -100,7 +95,7 @@ function NeuronGUI:CreateBarEditor()
     else
         editorFrame:SetStatusText("Welcome to the Neuron editor, please select a bar to begin")
     end
-    editorFrame:SetCallback("OnClose", function() NeuronGUI:ToggleEditor() end)
+    editorFrame:SetCallback("OnClose", function() NeuronGUI:ToggleEditor("hide") end)
     editorFrame:SetLayout("Flow")
 
     local barListContainer = AceGUI:Create("InlineGroup")
