@@ -42,4 +42,3 @@ Bar-Modules/Neuron-Status.lua
 Bar-Modules/Neuron-Status.xml
 
 Neuron-GUI.lua
-Neuron-GUI.xml

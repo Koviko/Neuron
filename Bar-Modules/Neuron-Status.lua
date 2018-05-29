@@ -2134,7 +2134,7 @@ end
 
 function NeuronStatusBar:LoadAux(button)
 
-	NEURON.NeuronGUI:SB_CreateEditFrame(button, button.objTIndex)
+	--NEURON.NeuronGUI:SB_CreateEditFrame(button, button.objTIndex)
 
 end
 

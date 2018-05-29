@@ -3314,7 +3314,7 @@ end
 ---TODO refactor this to NeuronButton
 function NeuronButton:LoadAux(button)
 
-	NEURON.NeuronGUI:ObjEditor_CreateEditFrame(button, button.objTIndex)
+	--NEURON.NeuronGUI:ObjEditor_CreateEditFrame(button, button.objTIndex)
 	NEURON.NeuronBinder:CreateBindFrame(button, button.objTIndex)
 
 end
