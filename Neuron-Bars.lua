@@ -1496,25 +1496,12 @@ function NeuronBar:OnClick(bar, ...)
 		end
 
 	elseif (click == "RightButton" and not bar.action and not down) then
+
 		bar.mousewheelfunc = nil
+		NEURON.NeuronGUI:RefreshEditor()
 
-		if (NeuronBarEditor) then
-			if (not newBar and NeuronBarEditor:IsVisible()) then
-				NeuronBarEditor:Hide()
-			else
-				NeuronBarEditor:Show()
-			end
-		end
-
-	elseif (not down) then
-		if (not newBar) then
-			--updateState(bar, 1)
-		end
 	end
 
-	if (not down and NeuronBarEditor and NeuronBarEditor:IsVisible()) then
-		NEURON.NeuronGUI:UpdateBarGUI(newBar)
-	end
 end
 
 
@@ -1958,6 +1945,11 @@ function NeuronBar:CreateBar(index, class, id)
 
         BARNameIndex[bar:GetName()] = bar
 
+		if NEURON.NeuronGUI.GUILoaded then
+			NEURON.NeuronGUI:RefreshEditor()
+		end
+
+
         return bar, newBar
     end
 end
@@ -2142,9 +2134,7 @@ function NeuronBar:DeleteBar(bar)
 	bar.GDB[bar:GetID()] = nil
 	bar.CDB[bar:GetID()] = nil
 
-	if (NeuronBarEditor and NeuronBarEditor:IsVisible()) then
-		NEURON.NeuronGUI:UpdateBarGUI()
-	end
+	NEURON.NeuronGUI:RefreshBarList()
 end
 
 

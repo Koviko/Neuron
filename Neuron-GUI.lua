@@ -10,8 +10,10 @@ local NeuronGUI = NEURON.NeuronGUI
 local L = LibStub("AceLocale-3.0"):GetLocale("Neuron")
 local AceGUI = LibStub("AceGUI-3.0")
 
-local NeuronEditor
-NEURON.NeuronEditor = NeuronEditor
+local editorFrame = {}
+NeuronGUI.editorFrame = editorFrame
+local barListFrame = {}
+NeuronGUI.barListFrame = barListFrame
 
 -----------------------------------------------------------------------------
 --------------------------INIT FUNCTIONS-------------------------------------
@@ -37,9 +39,10 @@ end
 --- the game that wasn't available in OnInitialize
 function NeuronGUI:OnEnable()
 
-    NeuronEditor = NeuronGUI:CreateBarEditor()
-    NeuronEditor:Hide()
-    NeuronEditor.isHidden = true
+    NeuronGUI:CreateBarEditor()
+    editorFrame:Hide()
+    editorFrame.isHidden = true
+    NeuronGUI.GUILoaded = true
 
 end
 
@@ -75,39 +78,89 @@ end
 -----------------------------------------------------------------------------
 
 
+function NeuronGUI:ToggleEditor()
+    if editorFrame.isHidden == true then
+        editorFrame:Show()
+        editorFrame.isHidden = false
+    else
+        editorFrame:Hide()
+        editorFrame.isHidden = true
+    end
+end
+
+
 function NeuronGUI:CreateBarEditor()
 
-    local editorFrame = AceGUI:Create("Frame")
+    editorFrame = AceGUI:Create("Frame")
     editorFrame:SetTitle("Neuron Editor")
-    --editorFrame:SetStatusText("Neuron's Main Graphical Editor")
-    editorFrame:SetCallback("OnClose", function(self) self:Hide() end)
+    editorFrame:SetWidth("900")
+    editorFrame:SetHeight("600")
+    if NEURON.CurrentBar then
+        editorFrame:SetStatusText("The Currently Selected Bar is: " .. NEURON.CurrentBar.gdata.name)
+    else
+        editorFrame:SetStatusText("Welcome to the Neuron editor, please select a bar to begin")
+    end
+    editorFrame:SetCallback("OnClose", function() NeuronGUI:ToggleEditor() end)
     editorFrame:SetLayout("Flow")
 
     local barListContainer = AceGUI:Create("InlineGroup")
     barListContainer:SetTitle("Bar List")
-    barListContainer:SetRelativeWidth(.25)
+    barListContainer:SetWidth(200)
     barListContainer:SetFullHeight(true)
     barListContainer:SetLayout("Fill")
     editorFrame:AddChild(barListContainer)
 
-    local barList = AceGUI:Create("ScrollFrame")
-    barList:SetLayout("Flow")
-    barList:SetFullHeight(true)
-    barList:SetFullWidth(true)
-    barListContainer:AddChild(barList)
+    barListFrame = AceGUI:Create("ScrollFrame")
+    barListFrame:SetLayout("Flow")
+    barListFrame:SetFullHeight(true)
+    barListFrame:SetFullWidth(true)
+    barListContainer:AddChild(barListFrame)
 
-    return editorFrame
+    NeuronGUI:PopulateBarList(barListFrame)
 end
 
+function NeuronGUI:PopulateBarList()
 
-function NeuronGUI:ToggleEditor()
-    if NeuronEditor.isHidden == true then
-        NeuronEditor:Show()
-        NeuronEditor.isHidden = false
-    else
-        NeuronEditor:Hide()
-        NeuronEditor.isHidden = true
+    local barNames = {}
+
+    for _,bar in pairs(NEURON.BARIndex) do
+        if (bar.gdata.name) then
+            barNames[bar.gdata.name] = bar
+        end
     end
+
+    --table.sort(barNames)
+
+
+    for name, bar in pairs(barNames) do
+        local barLabel = AceGUI:Create("InteractiveLabel")
+        barLabel:SetText(name)
+        barLabel:SetFont("Fonts\\FRIZQT__.TTF", 18)
+        barLabel:SetFullWidth(true)
+        barLabel:SetHighlight("Interface\\QuestFrame\\UI-QuestTitleHighlight")
+        barLabel.bar = bar
+        barLabel:SetCallback("OnEnter", function(self) NEURON.NeuronBar:OnEnter(self.bar) end)
+        barLabel:SetCallback("OnLeave", function(self) NEURON.NeuronBar:OnLeave(self.bar) end)
+        barLabel:SetCallback("OnClick", function(self)
+            NEURON.NeuronBar:ChangeBar(self.bar)
+            self.parent.parent.parent:SetStatusText("The Currently Selected Bar is: " .. name)
+        end)
+        barListFrame:AddChild(barLabel)
+    end
+
+end
+
+function NeuronGUI:RefreshEditor()
+
+    barListFrame:ReleaseChildren()
+    NeuronGUI:PopulateBarList(barListFrame)
+
+    if NEURON.CurrentBar then
+        editorFrame:SetStatusText("The Currently Selected Bar is: " .. NEURON.CurrentBar.gdata.name)
+    else
+        editorFrame:SetStatusText("Welcome to the Neuron editor, please select a bar to begin")
+    end
+
 end
 
 
