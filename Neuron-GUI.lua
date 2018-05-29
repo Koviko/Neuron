@@ -8,7 +8,10 @@ NEURON.NeuronGUI = Neuron:NewModule("GUI", "AceEvent-3.0", "AceHook-3.0")
 local NeuronGUI = NEURON.NeuronGUI
 
 local L = LibStub("AceLocale-3.0"):GetLocale("Neuron")
-local NeuronAceGUI = LibStub("AceGUI-3.0")
+local AceGUI = LibStub("AceGUI-3.0")
+
+local NeuronEditor
+NEURON.NeuronEditor = NeuronEditor
 
 -----------------------------------------------------------------------------
 --------------------------INIT FUNCTIONS-------------------------------------
@@ -18,7 +21,6 @@ local NeuronAceGUI = LibStub("AceGUI-3.0")
 --- do init tasks here, like loading the Saved Variables
 --- or setting up slash commands.
 function NeuronGUI:OnInitialize()
-
 
     ---This loads the Neuron interface panel
     LibStub("AceConfigRegistry-3.0"):ValidateOptionsTable(NeuronGUI.interfaceOptions, addonName)
@@ -35,6 +37,9 @@ end
 --- the game that wasn't available in OnInitialize
 function NeuronGUI:OnEnable()
 
+    NeuronEditor = NeuronGUI:CreateBarEditor()
+    NeuronEditor:Hide()
+    NeuronEditor.isHidden = true
 
 end
 
@@ -48,10 +53,6 @@ function NeuronGUI:OnDisable()
 end
 
 -------------------------------------------------
-
-
-
-
 
 
 
@@ -69,11 +70,54 @@ end
 
 
 
+-----------------------------------------------------------------------------
+--------------------------GUI Code-------------------------------------------
+-----------------------------------------------------------------------------
+
+
+function NeuronGUI:CreateBarEditor()
+
+    local editorFrame = AceGUI:Create("Frame")
+    editorFrame:SetTitle("Neuron Editor")
+    --editorFrame:SetStatusText("Neuron's Main Graphical Editor")
+    editorFrame:SetCallback("OnClose", function(self) self:Hide() end)
+    editorFrame:SetLayout("Flow")
+
+    local barListContainer = AceGUI:Create("InlineGroup")
+    barListContainer:SetTitle("Bar List")
+    barListContainer:SetRelativeWidth(.25)
+    barListContainer:SetFullHeight(true)
+    barListContainer:SetLayout("Fill")
+    editorFrame:AddChild(barListContainer)
+
+    local barList = AceGUI:Create("ScrollFrame")
+    barList:SetLayout("Flow")
+    barList:SetFullHeight(true)
+    barList:SetFullWidth(true)
+    barListContainer:AddChild(barList)
+
+    return editorFrame
+end
+
+
+function NeuronGUI:ToggleEditor()
+    if NeuronEditor.isHidden == true then
+        NeuronEditor:Show()
+        NeuronEditor.isHidden = false
+    else
+        NeuronEditor:Hide()
+        NeuronEditor.isHidden = true
+    end
+end
 
 
 
 
 
+
+-----------------------------------------------------------------------------
+--------------------------Interface Menu-------------------------------------
+-----------------------------------------------------------------------------
 
 --ACE GUI OPTION TABLE
 NeuronGUI.interfaceOptions = {

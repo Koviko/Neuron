@@ -2071,13 +2071,8 @@ function NeuronBar:ToggleBars(show, hide)
 
 			NeuronBar:ChangeBar(nil)
 
-			if (NeuronBarEditor)then
-				NeuronBarEditor:Hide()
-			end
-
 		else
 
-			--NEURON:ToggleMainMenu(nil, true)
 			NEURON:ToggleEditFrames(nil, true)
 
 			NEURON.BarsShown = true
@@ -2087,7 +2082,9 @@ function NeuronBar:ToggleBars(show, hide)
 				NEURON.NeuronBar:Update(bar, true)
 			end
 		end
-	end
+    end
+
+    NEURON.NeuronGUI:ToggleEditor()
 
 end
 
