@@ -11,9 +11,9 @@ local L = LibStub("AceLocale-3.0"):GetLocale("Neuron")
 local AceGUI = LibStub("AceGUI-3.0")
 
 local editorFrame = {}
-NeuronGUI.editorFrame = editorFrame
 local barListFrame = {}
-NeuronGUI.barListFrame = barListFrame
+local renameBox = {}
+
 
 -----------------------------------------------------------------------------
 --------------------------INIT FUNCTIONS-------------------------------------
@@ -79,6 +79,7 @@ end
 
 function NeuronGUI:ToggleEditor(hideorshow)
     if hideorshow == "show" then
+        NeuronGUI:RefreshEditor()
         editorFrame:Show()
     elseif hideorshow == "hide" then
         editorFrame:Hide()
@@ -111,11 +112,18 @@ function NeuronGUI:CreateBarEditor()
     rightContainer:SetLayout("Flow")
     editorFrame:AddChild(rightContainer)
 
+    ---Container for the Rename box in the right column
+    local barRenameContainer = AceGUI:Create("SimpleGroup")
+    barRenameContainer:SetHeight(20)
+    barRenameContainer:SetLayout("Flow")
+    rightContainer:AddChild(barRenameContainer)
+    NeuronGUI:PopulateRenameBar(barRenameContainer) --this is to make the Rename/Create/Delete Bars group
+
 
     ---Container for the Bar List scroll frame
     local barListContainer = AceGUI:Create("InlineGroup")
-    --barListContainer:SetFullWidth(true)
-    barListContainer:SetHeight(507)
+    barListContainer:SetTitle("Select an available bar:")
+    barListContainer:SetHeight(520)
     barListContainer:SetLayout("Fill")
     rightContainer:AddChild(barListContainer)
 
@@ -129,7 +137,7 @@ function NeuronGUI:CreateBarEditor()
     ---Container for the Bar List scroll frame
     local barEditOptionsContainer = AceGUI:Create("SimpleGroup")
     --barListContainer:SetFullWidth(true)
-    barEditOptionsContainer:SetHeight(130)
+    barEditOptionsContainer:SetHeight(110)
     barEditOptionsContainer:SetLayout("Flow")
     rightContainer:AddChild(barEditOptionsContainer)
     NeuronGUI:PopulateEditOptions(barEditOptionsContainer) --this is to make the Rename/Create/Delete Bars group
@@ -148,7 +156,6 @@ function NeuronGUI:CreateBarEditor()
     tabFrame:SetTabs({{text="Bar Settings", value="tab1"}, {text="Button Settings", value="tab2"}})
     tabFrame:SetCallback("OnGroupSelected", function(self, event, tab) NeuronGUI:SelectTab(self, event, tab) end)
     tabFrame:SelectTab("tab1")
-
     tabFrameContainer:AddChild(tabFrame)
 
 end
@@ -201,23 +208,25 @@ function NeuronGUI:PopulateBarList()
         barLabel:SetFont("Fonts\\FRIZQT__.TTF", 18)
         barLabel:SetFullWidth(true)
         barLabel:SetHighlight("Interface\\QuestFrame\\UI-QuestTitleHighlight")
+        if NEURON.CurrentBar == bar then
+            barLabel:SetColor(1,.9,0)
+        end
         barLabel.bar = bar
         barLabel:SetCallback("OnEnter", function(self) NEURON.NeuronBar:OnEnter(self.bar) end)
         barLabel:SetCallback("OnLeave", function(self) NEURON.NeuronBar:OnLeave(self.bar) end)
         barLabel:SetCallback("OnClick", function(self)
             NEURON.NeuronBar:ChangeBar(self.bar)
-            editorFrame:SetStatusText("The Currently Selected Bar is: " .. bar.gdata.name)
+            NeuronGUI:RefreshEditor()
+            self:SetColor(1,.9,0)
         end)
         barListFrame:AddChild(barLabel)
     end
 
 end
 
-function NeuronGUI:PopulateEditOptions(container)
 
-    local renameBox = AceGUI:Create("EditBox")
-    renameBox:SetLabel("Rename Selected Bar")
-    container:AddChild(renameBox)
+
+function NeuronGUI:PopulateEditOptions(container)
 
     local newBarButton = AceGUI:Create("Button")
     newBarButton:SetText("Create a New Bar")
@@ -230,18 +239,47 @@ function NeuronGUI:PopulateEditOptions(container)
 
 end
 
+function NeuronGUI:PopulateRenameBar(container)
+
+    renameBox = AceGUI:Create("EditBox")
+    if NEURON.CurrentBar then
+        renameBox:SetText(NEURON.CurrentBar.gdata.name)
+    end
+    renameBox:SetLabel("Rename selected bar")
+
+    renameBox:SetCallback("OnEnterPressed", function(self) NeuronGUI:updateBarName(self) end)
+
+    container:AddChild(renameBox)
+
+end
+
+function NeuronGUI:updateBarName(editBox)
+
+    local bar = NEURON.CurrentBar
+
+    if (bar) then
+        bar.gdata.name = editBox:GetText()
+        bar.text:SetText(bar.gdata.name)
+
+        NEURON.NeuronBar:SaveData(bar)
+
+        editBox:ClearFocus()
+        NeuronGUI:RefreshEditor()
+    end
+end
 
 function NeuronGUI:RefreshEditor()
 
-    barListFrame:ReleaseChildren()
-    NeuronGUI:PopulateBarList(barListFrame)
-
     if NEURON.CurrentBar then
-        editorFrame:SetStatusText("The Currently Selected Bar is: " .. NEURON.CurrentBar.gdata.name)
+        renameBox:SetText(NEURON.CurrentBar.gdata.name)
+        editorFrame:SetStatusText("The currently selected bar is: " .. NEURON.CurrentBar.gdata.name)
     else
-        editorFrame:SetStatusText("Welcome to the Neuron editor, please select a bar to begin")
+        renameBox:SetText("")
+        editorFrame:SetStatusText("Please select a bar from the right to begin")
     end
 
+    barListFrame:ReleaseChildren()
+    NeuronGUI:PopulateBarList(barListFrame)
 end
 
 
