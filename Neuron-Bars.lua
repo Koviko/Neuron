@@ -2047,6 +2047,8 @@ function NeuronBar:ChangeBar(bar)
 		end
 	end
 
+	NEURON.NeuronGUI:RefreshEditor()
+
 	return newBar
 end
 
