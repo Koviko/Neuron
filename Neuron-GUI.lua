@@ -10,10 +10,12 @@ local NeuronGUI = NEURON.NeuronGUI
 local L = LibStub("AceLocale-3.0"):GetLocale("Neuron")
 local AceGUI = LibStub("AceGUI-3.0")
 
-local editorFrame = {}
-local barListFrame = {}
-local renameBox = {}
-local barEditOptionsContainer = {}
+
+---Class level handles for frame elements that need to be refreshed often
+local editorFrame = {} --outer frame for our editor window
+local barListFrame = {} --the frame containing just the bar list
+local renameBox = {} --the rename bar Box
+local barEditOptionsContainer = {} --The container that houses the add/remove bar buttons
 
 
 -----------------------------------------------------------------------------
@@ -25,12 +27,7 @@ local barEditOptionsContainer = {}
 --- or setting up slash commands.
 function NeuronGUI:OnInitialize()
 
-    ---This loads the Neuron interface panel
-    LibStub("AceConfigRegistry-3.0"):ValidateOptionsTable(NeuronGUI.interfaceOptions, addonName)
-    LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, NeuronGUI.interfaceOptions)
-    NeuronGUI.interfaceOptions.args.profile = LibStub("AceDBOptions-3.0"):GetOptionsTable(NEURON.db)
-    LibStub("AceConfigDialog-3.0"):AddToBlizOptions(addonName, addonName)
-
+    NeuronGUI:LoadInterfaceOptions()
 
 end
 
@@ -211,6 +208,9 @@ function NeuronGUI:PopulateEditOptions(container)
 
     local deleteBarButton = AceGUI:Create("Button")
     deleteBarButton:SetText("Delete Current Bar")
+    if not NEURON.CurrentBar then
+        deleteBarButton:SetDisabled(true)
+    end
     container:AddChild(deleteBarButton)
 
 
@@ -232,15 +232,6 @@ function NeuronGUI:PopulateEditOptions(container)
 
 end
 
---TODO: rework this Missing Bar Check code to be smarter
-function NeuronGUI:MissingBarCheck(class)
-    local allow = true
-    if ((class == "extrabar" and NeuronCDB.xbars[1]) or (class == "zoneabilitybar" and NeuronCDB.zoneabilitybars[1]))then
-        allow = false
-    end
-    return allow
-end
-
 function NeuronGUI:PopulateRenameBar(container)
 
     renameBox = AceGUI:Create("EditBox")
@@ -253,6 +244,19 @@ function NeuronGUI:PopulateRenameBar(container)
 
     container:AddChild(renameBox)
 
+end
+
+--TODO: rework this Missing Bar Check code to be smarter
+function NeuronGUI:MissingBarCheck(class)
+    local allow = true
+    if (class == "extrabar" and NeuronCDB.xbars[1])
+            or (class == "zoneabilitybar" and NeuronCDB.zoneabilitybars[1])
+            or (class == "pet" and NeuronCDB.petbars[1])
+            or (class == "bag" and NeuronCDB.bagbars[1])
+            or (class == "menu" and NeuronCDB.menubars[1]) then
+        allow = false
+    end
+    return allow
 end
 
 function NeuronGUI:updateBarName(editBox)
@@ -326,128 +330,136 @@ end
 --------------------------Interface Menu-------------------------------------
 -----------------------------------------------------------------------------
 
---ACE GUI OPTION TABLE
-NeuronGUI.interfaceOptions = {
-    name = "Neuron",
-    type = 'group',
-    args = {
-        moreoptions={
-            name = L["Options"],
-            type = "group",
-            order = 0,
-            args={
-                BlizzardBar = {
-                    order = 1,
-                    name = L["Display the Blizzard Bar"],
-                    desc = L["Shows / Hides the Default Blizzard Bar"],
-                    type = "toggle",
-                    set = function() NEURON:BlizzBar() end,
-                    get = function() return NeuronGDB.mainbar end,
-                    width = "full",
-                },
-                NeuronMinimapButton = {
-                    order = 2,
-                    name = L["Display Minimap Button"],
-                    desc = L["Toggles the minimap button."],
-                    type = "toggle",
-                    set =  function() NEURON.NeuronMinimapIcon:ToggleIcon() end,
-                    get = function() return not NeuronGDB.NeuronIcon.hide end,
-                    width = "full"
-                },
-            },
-        },
-
-        changelog = {
-            name = L["Changelog"],
-            type = "group",
-            order = 1000,
-            args = {
-                line1 = {
-                    type = "description",
-                    name = L["Changelog_Latest_Version"],
+---This loads the Neuron interface panel
+function NeuronGUI:LoadInterfaceOptions()
+    --ACE GUI OPTION TABLE
+    local interfaceOptions = {
+        name = "Neuron",
+        type = 'group',
+        args = {
+            moreoptions={
+                name = L["Options"],
+                type = "group",
+                order = 0,
+                args={
+                    BlizzardBar = {
+                        order = 1,
+                        name = L["Display the Blizzard Bar"],
+                        desc = L["Shows / Hides the Default Blizzard Bar"],
+                        type = "toggle",
+                        set = function() NEURON:BlizzBar() end,
+                        get = function() return NeuronGDB.mainbar end,
+                        width = "full",
+                    },
+                    NeuronMinimapButton = {
+                        order = 2,
+                        name = L["Display Minimap Button"],
+                        desc = L["Toggles the minimap button."],
+                        type = "toggle",
+                        set =  function() NEURON.NeuronMinimapIcon:ToggleIcon() end,
+                        get = function() return not NeuronGDB.NeuronIcon.hide end,
+                        width = "full"
+                    },
                 },
             },
-        },
 
-        faq = {
-            name = L["F.A.Q."],
-            desc = L["Frequently Asked Questions"],
-            type = "group",
-            order = 1001,
-            args = {
-
-                line1 = {
-                    type = "description",
-                    name = L["FAQ_Intro"],
+            changelog = {
+                name = L["Changelog"],
+                type = "group",
+                order = 1000,
+                args = {
+                    line1 = {
+                        type = "description",
+                        name = L["Changelog_Latest_Version"],
+                    },
                 },
+            },
 
-                g1 = {
-                    type = "group",
-                    name = L["Bar Configuration"],
-                    order = 1,
-                    args = {
+            faq = {
+                name = L["F.A.Q."],
+                desc = L["Frequently Asked Questions"],
+                type = "group",
+                order = 1001,
+                args = {
 
-                        line1 = {
-                            type = "description",
-                            name = L["Bar_Configuration_FAQ"],
-                            order = 1,
-                        },
+                    line1 = {
+                        type = "description",
+                        name = L["FAQ_Intro"],
+                    },
 
-                        g1 = {
-                            type = "group",
-                            name = L["General Options"],
-                            order = 1,
-                            args = {
-                                line1 = {
-                                    type = "description",
-                                    name = L["General_Bar_Configuration_Option_FAQ"] ,
-                                    order = 1,
+                    g1 = {
+                        type = "group",
+                        name = L["Bar Configuration"],
+                        order = 1,
+                        args = {
+
+                            line1 = {
+                                type = "description",
+                                name = L["Bar_Configuration_FAQ"],
+                                order = 1,
+                            },
+
+                            g1 = {
+                                type = "group",
+                                name = L["General Options"],
+                                order = 1,
+                                args = {
+                                    line1 = {
+                                        type = "description",
+                                        name = L["General_Bar_Configuration_Option_FAQ"] ,
+                                        order = 1,
+                                    },
                                 },
                             },
-                        },
 
-                        g2 = {
-                            type = "group",
-                            name = L["Bar States"],
-                            order = 2,
-                            args = {
-                                line1 = {
-                                    type = "description",
-                                    name = L["Bar_State_Configuration_FAQ"],
-                                    order = 1,
+                            g2 = {
+                                type = "group",
+                                name = L["Bar States"],
+                                order = 2,
+                                args = {
+                                    line1 = {
+                                        type = "description",
+                                        name = L["Bar_State_Configuration_FAQ"],
+                                        order = 1,
+                                    },
                                 },
                             },
-                        },
 
-                        g3 = {
-                            type = "group",
-                            name = L["Spell Target Options"],
-                            order = 3,
-                            args = {
-                                line1 = {
-                                    type = "description",
-                                    name = L["Spell_Target_Options_FAQ"],
-                                    order = 1,
+                            g3 = {
+                                type = "group",
+                                name = L["Spell Target Options"],
+                                order = 3,
+                                args = {
+                                    line1 = {
+                                        type = "description",
+                                        name = L["Spell_Target_Options_FAQ"],
+                                        order = 1,
+                                    },
                                 },
                             },
                         },
                     },
-                },
 
-                g2 = {
-                    type = "group",
-                    name = L["Flyout"],
-                    order = 3,
-                    args = {
-                        line1a = {
-                            type = "description",
-                            name = L["Flyout_FAQ"],
-                            order = 1,
+                    g2 = {
+                        type = "group",
+                        name = L["Flyout"],
+                        order = 3,
+                        args = {
+                            line1a = {
+                                type = "description",
+                                name = L["Flyout_FAQ"],
+                                order = 1,
+                            },
                         },
                     },
-                },
 
+                },
             },
         },
-    },
-}
+    }
+
+    LibStub("AceConfigRegistry-3.0"):ValidateOptionsTable(interfaceOptions, addonName)
+    LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, interfaceOptions)
+    interfaceOptions.args.profile = LibStub("AceDBOptions-3.0"):GetOptionsTable(NEURON.db)
+    LibStub("AceConfigDialog-3.0"):AddToBlizOptions(addonName, addonName)
+end
