@@ -234,7 +234,7 @@ function NeuronBar:OnInitialize()
 		CDALPHA = true,
 		AURATEXT = true,
 		AURAIND = true
-		}, true, 115)
+	}, true, 115)
 
 	NeuronBar.HideZoneAbilityBorder = NEURON.NeuronZoneAbilityBar.HideZoneAbilityBorder --this is so the slash function has access to this function
 	NEURON.CreateNewBar = NeuronBar.CreateNewBar --temp just so slash functions still work
@@ -1784,7 +1784,7 @@ function NeuronBar:SaveData(bar)
 
 	if (bar.GDB[id]) then
 		for key,value in pairs(bar.gdata) do
-            bar.GDB[id][key] = value
+			bar.GDB[id][key] = value
 		end
 	else
 		NEURON:Print("DEBUG: Bad Global Save Data for "..bar:GetName().." ?")
@@ -1792,7 +1792,7 @@ function NeuronBar:SaveData(bar)
 
 	if (bar.CDB[id]) then
 		for key,value in pairs(bar.cdata) do
-            bar.CDB[id][key] = value
+			bar.CDB[id][key] = value
 		end
 	else
 		NEURON:Print("DEBUG: Bad Character Save Data for "..bar:GetName().." ?")
@@ -1952,45 +1952,46 @@ function NeuronBar:CreateBar(index, class, id)
 
         return bar, newBar
     end
+
 end
 
 
 function NeuronBar:CreateNewBar(class, id, firstRun)
-    if (class and NEURON.RegisteredBarData[class]) then
-        local index = 1
+	if (class and NEURON.RegisteredBarData[class]) then
+		local index = 1
 
-        for _ in ipairs(BARIndex) do
-            index = index + 1
-        end
+		for _ in ipairs(BARIndex) do
+			index = index + 1
+		end
 
-        local bar, newBar = NeuronBar:CreateBar(index, class, id)
+		local bar, newBar = NeuronBar:CreateBar(index, class, id)
 
-        if (firstRun) then
-            NeuronBar:SetDefaults(bar, bar.gDef, bar.cDef)
-        end
+		if (firstRun) then
+			NeuronBar:SetDefaults(bar, bar.gDef, bar.cDef)
+		end
 
-        if (newBar) then
-            NeuronBar:Load(bar)
-            NeuronBar:ChangeBar(bar)
+		if (newBar) then
+			NeuronBar:Load(bar)
+			NeuronBar:ChangeBar(bar)
 
-            ---------------------------------
-            if (class == "extrabar") then --this is a hack to get around an issue where the extrabar wasn't autohiding due to bar visibility states. There most likely a way better way to do this in the future. FIX THIS!
-                bar.gdata.hidestates = ":extrabar0:"
-                bar.vischanged = true
-                NeuronBar:Update(bar)
-            end
-            if (class == "pet") then --this is a hack to get around an issue where the extrabar wasn't autohiding due to bar visibility states. There most likely a way better way to do this in the future. FIX THIS!
-                bar.gdata.hidestates = ":pet0:"
-                bar.vischanged = true
-                NeuronBar:Update(bar)
-            end
-            -----------------------------------
-        end
+			---------------------------------
+			if (class == "extrabar") then --this is a hack to get around an issue where the extrabar wasn't autohiding due to bar visibility states. There most likely a way better way to do this in the future. FIX THIS!
+				bar.gdata.hidestates = ":extrabar0:"
+				bar.vischanged = true
+				NeuronBar:Update(bar)
+			end
+			if (class == "pet") then --this is a hack to get around an issue where the extrabar wasn't autohiding due to bar visibility states. There most likely a way better way to do this in the future. FIX THIS!
+				bar.gdata.hidestates = ":pet0:"
+				bar.vischanged = true
+				NeuronBar:Update(bar)
+			end
+			-----------------------------------
+		end
 
-        return bar
-    else
-        NEURON.PrintBarTypes()
-    end
+		return bar
+	else
+		NEURON.PrintBarTypes()
+	end
 end
 
 function NeuronBar:ChangeBar(bar)
@@ -2150,6 +2151,8 @@ function NeuronBar:AddObjectToList(bar, object)
 
 	if (not bar.gdata.objectList or bar.gdata.objectList == {}) then
 		bar.gdata.objectList[1] = object.id
+	elseif (self.class == "bag") then
+		table.insert(bar.gdata.objectList, 1, object.id) --for bag bars insert the object to the start of the list
 	else
 		bar.gdata.objectList[#bar.gdata.objectList +1] = object.id
 	end
@@ -2250,7 +2253,13 @@ function NeuronBar:RemoveObjectsFromBar(bar, num)
 
 	for i=1,num do
 
-		local objID = bar.gdata.objectList[#bar.gdata.objectList]
+		local objID
+
+		if bar.class ~= "bag" then
+			objID = bar.gdata.objectList[#bar.gdata.objectList]
+		else
+			objID = bar.gdata.objectList[1] --for bag bars, remove from the front of the list
+		end
 
 		if (objID) then
 			local object = _G[bar.objPrefix..tostring(objID)]
