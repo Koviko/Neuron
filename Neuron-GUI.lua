@@ -1,8 +1,10 @@
---Neuron GUI, a World of Warcraft® user interface addon.
+﻿--Neuron GUI, a World of Warcraft® user interface addon.
 
 local addonName = ...
 
 local NEURON = Neuron
+
+local DB
 
 NEURON.NeuronGUI = Neuron:NewModule("GUI", "AceEvent-3.0", "AceHook-3.0")
 local NeuronGUI = NEURON.NeuronGUI
@@ -26,6 +28,8 @@ local barEditOptionsContainer = {} --The container that houses the add/remove ba
 --- do init tasks here, like loading the Saved Variables
 --- or setting up slash commands.
 function NeuronGUI:OnInitialize()
+
+    DB = NEURON.db.profile
 
     NeuronGUI:LoadInterfaceOptions()
 
@@ -71,8 +75,8 @@ end
 function NeuronGUI:RefreshEditor()
 
     if NEURON.CurrentBar then
-        renameBox:SetText(NEURON.CurrentBar.gdata.name)
-        editorFrame:SetStatusText("The currently selected bar is: " .. NEURON.CurrentBar.gdata.name)
+        renameBox:SetText(NEURON.CurrentBar.data.name)
+        editorFrame:SetStatusText("The currently selected bar is: " .. NEURON.CurrentBar.data.name)
     else
         renameBox:SetText("")
         editorFrame:SetStatusText("Please select a bar from the right to begin")
@@ -95,7 +99,7 @@ function NeuronGUI:CreateBarEditor()
     editorFrame:SetHeight("700")
     editorFrame:EnableResize(false)
     if NEURON.CurrentBar then
-        editorFrame:SetStatusText("The Currently Selected Bar is: " .. NEURON.CurrentBar.gdata.name)
+        editorFrame:SetStatusText("The Currently Selected Bar is: " .. NEURON.CurrentBar.data.name)
     else
         editorFrame:SetStatusText("Welcome to the Neuron editor, please select a bar to begin")
     end
@@ -142,7 +146,7 @@ function NeuronGUI:CreateBarEditor()
 
     ---Container for the tab frame
     local tabFrameContainer = AceGUI:Create("SimpleGroup")
-    tabFrameContainer:SetRelativeWidth(.80)
+    tabFrameContainer:SetRelativeWidth(.79)
     tabFrameContainer:SetFullHeight(true)
     tabFrameContainer:SetLayout("Fill")
     editorFrame:AddChild(tabFrameContainer, rightContainer)
@@ -161,7 +165,7 @@ function NeuronGUI:PopulateBarList()
 
     for _, bar in pairs(NEURON.BARIndex) do
         local barLabel = AceGUI:Create("InteractiveLabel")
-        barLabel:SetText(bar.gdata.name)
+        barLabel:SetText(bar.data.name)
         barLabel:SetFont("Fonts\\FRIZQT__.TTF", 18)
         barLabel:SetFullWidth(true)
         barLabel:SetHighlight("Interface\\QuestFrame\\UI-QuestTitleHighlight")
@@ -222,7 +226,7 @@ function NeuronGUI:PopulateRenameBar(container)
 
     renameBox = AceGUI:Create("EditBox")
     if NEURON.CurrentBar then
-        renameBox:SetText(NEURON.CurrentBar.gdata.name)
+        renameBox:SetText(NEURON.CurrentBar.data.name)
     end
     renameBox:SetLabel("Rename selected bar")
 
@@ -235,11 +239,11 @@ end
 --TODO: rework this Missing Bar Check code to be smarter
 function NeuronGUI:MissingBarCheck(class)
     local allow = true
-    if (class == "extrabar" and NeuronCDB.xbars[1])
-            or (class == "zoneabilitybar" and NeuronCDB.zoneabilitybars[1])
-            or (class == "pet" and NeuronCDB.petbars[1])
-            or (class == "bag" and NeuronCDB.bagbars[1])
-            or (class == "menu" and NeuronCDB.menubars[1]) then
+    if (class == "extrabar" and DB.extrabar[1])
+            or (class == "zoneabilitybar" and DB.zoneabilitybar[1])
+            or (class == "pet" and DB.petbar[1])
+            or (class == "bag" and DB.bagbar[1])
+            or (class == "menu" and DB.menubar[1]) then
         allow = false
     end
     return allow
@@ -250,8 +254,8 @@ function NeuronGUI:updateBarName(editBox)
     local bar = NEURON.CurrentBar
 
     if (bar) then
-        bar.gdata.name = editBox:GetText()
-        bar.text:SetText(bar.gdata.name)
+        bar.data.name = editBox:GetText()
+        bar.text:SetText(bar.data.name)
 
         NEURON.NeuronBar:SaveData(bar)
 
@@ -330,20 +334,21 @@ function NeuronGUI:LoadInterfaceOptions()
                 args={
                     BlizzardBar = {
                         order = 1,
-                        name = L["Display the Blizzard Bar"],
-                        desc = L["Shows / Hides the Default Blizzard Bar"],
+                        name = L["Display the Blizzard UI"],
+                        desc = L["Shows / Hides the Default Blizzard UI"],
                         type = "toggle",
-                        set = function() NEURON:BlizzBar() end,
-                        get = function() return NeuronGDB.mainbar end,
+                        set = function() NEURON:ToggleBlizzUI() end,
+                        get = function() return DB.blizzbar end,
                         width = "full",
                     },
+
                     NeuronMinimapButton = {
                         order = 2,
                         name = L["Display Minimap Button"],
                         desc = L["Toggles the minimap button."],
                         type = "toggle",
                         set =  function() NEURON.NeuronMinimapIcon:ToggleIcon() end,
-                        get = function() return not NeuronGDB.NeuronIcon.hide end,
+                        get = function() return not DB.NeuronIcon.hide end,
                         width = "full"
                     },
                 },
