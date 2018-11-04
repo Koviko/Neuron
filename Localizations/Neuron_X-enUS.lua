@@ -135,8 +135,8 @@ L["StateList_Description"] = "Print a list of valid states"
 L["BarTypes"] = true
 L["BarTypes_Description"] = "Print a list of available bar types to make"
 
-L["BlizzBar"] = true
-L["BlizzBar_Description"] = "Toggle Blizzard's Action Bar"
+L["BlizzUI"] = true
+L["BlizzUI_Description"] = "Toggle Blizzard's DefaultUI"
 
 L["MoveSpecButtons"] = true
 L["MoveSpecButtons_Description"] = "Copies the buttons from one spec to a second"
@@ -202,8 +202,9 @@ L["Control Down"] = true
 L["Shift Up"] = true
 L["Shift Down"] = true
 
+L["Vanish"] = true
+L["Shapeshift"] = true
 L["No Stealth"] = true
-L["Stealth"] = true
 L["Friendly"] = true
 L["Hostile"] = true
 L["Out of Combat"] = true
@@ -223,6 +224,8 @@ L["No Override Bar"] = true
 L["Override Bar"] = true
 L["No Extra Bar"] = true
 L["Extra Bar"] = true
+
+L["Vehicle Exit Bar"] = true
 
 L["Custom States"] = true
 
@@ -366,8 +369,8 @@ L["Point"] = true
 L["X Position"] = true
 L["Y Position"] = true
 
-L["Display the Blizzard Bar"] = true
-L["Shows / Hides the Default Blizzard Bar"] = true
+L["Display the Blizzard UI"] = true
+L["Shows / Hides the Default Blizzard UI"] = true
 
 L["Display Minimap Button"] = true
 L["Toggles the minimap button."] = true
@@ -428,7 +431,7 @@ L["Pet Bar"] = true
 L["Menu Bar"] = true
 
 L["Track Character XP"] = true
-L["Track Artifact Power"] = true
+L["Track Azerite Power"] = true
 L["Track Honor Points"] = true
 
 L["Width"] = true
@@ -512,6 +515,7 @@ L["Click"] = true
 L["Generate Macro"] = true
 L["Copy and Paste the text below"] = true
 
+L["Pet Actions can not be added to Neuron bars at this time."] = true
 
 ------------------------------------------------------------
 ----------------------FAQ Strings---------------------------

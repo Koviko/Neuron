@@ -1,6 +1,6 @@
 # Neuron
 
-Neuron is a full featured action Bar addon for World of Warcraft: Legion, updated for Patch 7.3
+Neuron is a full featured action Bar addon for World of Warcraft: Battle for Azeroth, updated for Patch 8.0
 
 ## Manual Install:
 I do not recommend downloading this addon directly from Github, as there are CurseForge packaging modifications made the the addon upon release. These modifications include updating all included libraries to their latest release versions and pulling in all of the crowd sourced localizations. I have made an effort to pull in periodic samplings of these, but what you will find in the packaged versions on CurseForge or WowInterface will be much more up to date.
@@ -25,7 +25,6 @@ Neuron inherits all theming courtesy of the **[Masque](https://mods.curse.com/ad
 
 ## Features:
 * Neuron features an unlimited number of macros. You can create as many bars/buttons as you want/need per character!
-* Are you a keybinder extreme? Use the button storage area for all your macros/keybindings! No buttons on screen needed!
 * Are you a clicker extraordinaire? As many buttons on the screen you want where you want, when you want!
 * Macros the size of Texas! Up to 1024 characters in length!
 * Maul's unique mouse-over key-binding system - where the mouse-over binding system was born!
@@ -43,7 +42,6 @@ If the command line is your thing, all of the options found in the graphical bar
 Type /neuron alone to display a list of available commands, which are:
 
 * **menu:** Toggle the main menu
-* **storage:** Open the button storage area
 * **create:** Create a blank bar
 * **delete:** Delete the currently selected bar
 * **config:** Toggle configuration mode for all bars

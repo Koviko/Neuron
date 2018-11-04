@@ -1,37 +1,30 @@
 --Neuron Menu Bar, a World of Warcraft® user interface addon.
 
---Most of this code is based off of the 7.0 version of Blizzard's
---MainMenuBarMicroButtons.lua & MainMenuBarMicroButtons.xml files
-
 -------------------------------------------------------------------------------
 -- AddOn namespace.
 -------------------------------------------------------------------------------
 local NEURON = Neuron
 local DB
 
-NEURON.NeuronMenuBar = NEURON:NewModule("MenuBar")
+NEURON.NeuronMenuBar = NEURON:NewModule("MenuBar", "AceHook-3.0")
 local NeuronMenuBar = NEURON.NeuronMenuBar
 
-local menubarsDB, menubtnsDB
-
-local MENUBTN = setmetatable({}, { __index = CreateFrame("Frame") })
+local MENUBTN = setmetatable({}, {__index = CreateFrame("CheckButton")})
 
 local L = LibStub("AceLocale-3.0"):GetLocale("Neuron")
 
-local gDef = {
-    snapTo = false,
-    snapToFrame = false,
-    snapToPoint = false,
-    point = "BOTTOMRIGHT",
-    x = -335,
-    y = 23,
+local defaultBarOptions = {
+    [1] = {
+        snapTo = false,
+        snapToFrame = false,
+        snapToPoint = false,
+        point = "BOTTOMRIGHT",
+        x = -348,
+        y = 24,
+    }
 }
 
 local menuElements = {}
-
-local configData = {
-    stored = false,
-}
 
 -----------------------------------------------------------------------------
 --------------------------INIT FUNCTIONS-------------------------------------
@@ -42,12 +35,7 @@ local configData = {
 --- or setting up slash commands.
 function NeuronMenuBar:OnInitialize()
 
-    DB = NeuronCDB
-
-
-    menubarsDB = DB.menubars
-    menubtnsDB = DB.menubtns
-
+    DB = NEURON.db.profile
 
 
     menuElements[1] = CharacterMicroButton
@@ -66,10 +54,9 @@ function NeuronMenuBar:OnInitialize()
     ----------------------------------------------------------------
     MENUBTN.SetData = NeuronMenuBar.SetData
     MENUBTN.LoadData = NeuronMenuBar.LoadData
-    MENUBTN.SaveData = NeuronMenuBar.SaveData
     MENUBTN.SetAux = NeuronMenuBar.SetAux
     MENUBTN.LoadAux = NeuronMenuBar.LoadAux
-    MENUBTN.SetGrid = NeuronMenuBar.SetGrid
+    MENUBTN.SetObjectVisibility = NeuronMenuBar.SetObjectVisibility
     MENUBTN.SetDefaults = NeuronMenuBar.SetDefaults
     MENUBTN.GetDefaults = NeuronMenuBar.GetDefaults
     MENUBTN.SetType = NeuronMenuBar.SetType
@@ -77,12 +64,12 @@ function NeuronMenuBar:OnInitialize()
     MENUBTN.SetSkinned = NeuronMenuBar.SetSkinned
     ----------------------------------------------------------------
 
-    NEURON:RegisterBarClass("menu", "MenuBar", L["Menu Bar"], "Menu Button", menubarsDB, menubarsDB, NeuronMenuBar, menubtnsDB, "CheckButton", "NeuronAnchorButtonTemplate", { __index = MENUBTN }, #menuElements, gDef, nil, false)
+    NEURON:RegisterBarClass("menu", "MenuBar", L["Menu Bar"], "Menu Button", DB.menubar, NeuronMenuBar, DB.menubtn, "CheckButton", "NeuronAnchorButtonTemplate", { __index = MENUBTN }, #menuElements, false)
     NEURON:RegisterGUIOptions("menu", { AUTOHIDE = true, SHOWGRID = false, SPELLGLOW = false, SNAPTO = true, MULTISPEC = false, HIDDEN = true, LOCKBAR = false, TOOLTIPS = true }, false, false)
 
-
-    NeuronMenuBar:CreateBarsAndButtons()
-
+    if DB.blizzbar == false then
+        NeuronMenuBar:CreateBarsAndButtons()
+    end
 end
 
 --- **OnEnable** which gets called during the PLAYER_LOGIN event, when most of the data provided by the game is already present.
@@ -91,6 +78,10 @@ end
 --- the game that wasn't available in OnInitialize
 function NeuronMenuBar:OnEnable()
 
+    NEURON:RegisterEvent("PET_BATTLE_OPENING_START")
+    NEURON:RegisterEvent("PET_BATTLE_CLOSE")
+
+    NeuronMenuBar:DisableDefault()
 
 end
 
@@ -107,6 +98,12 @@ end
 ------------------------------------------------------------------------------
 
 
+function NEURON:PET_BATTLE_OPENING_START()
+end
+
+function NEURON:PET_BATTLE_CLOSE()
+end
+
 -------------------------------------------------------------------------------
 
 
@@ -114,25 +111,34 @@ function NeuronMenuBar:CreateBarsAndButtons()
 
 
     if (DB.menubarFirstRun) then
-        local bar = NEURON.NeuronBar:CreateNewBar("menu", 1, true)
-        local object
 
-        for i=1,#menuElements do
-            object = NEURON.NeuronButton:CreateNewObject("menu", i)
-            NEURON.NeuronBar:AddObjectToList(bar, object)
+        for id, defaults in ipairs(defaultBarOptions) do
+
+            local bar = NEURON.NeuronBar:CreateNewBar("menu", id, true) --this calls the bar constructor
+
+            for	k,v in pairs(defaults) do
+                bar.data[k] = v
+            end
+
+            local object
+
+            for i=1,#menuElements do
+                object = NEURON.NeuronButton:CreateNewObject("menu", i, true)
+                NEURON.NeuronBar:AddObjectToList(bar, object)
+            end
         end
 
         DB.menubarFirstRun = false
 
     else
 
-        for id,data in pairs(menubarsDB) do
+        for id,data in pairs(DB.menubar) do
             if (data ~= nil) then
                 NEURON.NeuronBar:CreateNewBar("menu", id)
             end
         end
 
-        for id,data in pairs(menubtnsDB) do
+        for id,data in pairs(DB.menubtn) do
             if (data ~= nil) then
                 NEURON.NeuronButton:CreateNewObject("menu", id)
             end
@@ -140,6 +146,23 @@ function NeuronMenuBar:CreateBarsAndButtons()
     end
 end
 
+function NeuronMenuBar:DisableDefault()
+
+    local disableMenuBarFunctions = false
+
+    for i,v in ipairs(NEURON.NeuronMenuBar) do
+        if (v["bar"]) then --only disable if a specific button has an associated bar
+            disableMenuBarFunctions = true
+        end
+    end
+
+    if disableMenuBarFunctions then
+        ---This stops PetBattles from taking over the Micro Buttons
+        NeuronMenuBar:RawHook("MoveMicroButtons", function() end, true)
+        NeuronMenuBar:RawHook("UpdateMicroButtonsParent", function() end, true)
+    end
+
+end
 
 
 function NeuronMenuBar:SetData(button, bar)
@@ -147,48 +170,33 @@ function NeuronMenuBar:SetData(button, bar)
 
         button.bar = bar
 
-        button:SetFrameStrata(bar.gdata.objectStrata)
-        button:SetScale(bar.gdata.scale)
+        button:SetFrameStrata(bar.data.objectStrata)
+        button:SetScale(bar.data.scale)
 
     end
 
     button:SetFrameLevel(4)
 end
 
-function NeuronMenuBar:SaveData(button)
-    -- empty
-end
 
 function NeuronMenuBar:LoadData(button, spec, state)
+
     local id = button.id
 
-    button.DB = menubtnsDB
-
-    if (button.DB) then
-
-        if (not button.DB[id]) then
-            button.DB[id] = {}
-        end
-
-        if (not button.DB[id].config) then
-            button.DB[id].config = CopyTable(configData)
-        end
-
-        if (not button.DB[id]) then
-            button.DB[id] = {}
-        end
-
-        if (not button.DB[id].data) then
-            button.DB[id].data = {}
-        end
-
-        button.config = button.DB [id].config
-
-        button.data = button.DB[id].data
+    if not DB.menubtn[id] then
+        DB.menubtn[id] = {}
     end
+
+    button.DB = DB.menubtn[id]
+
+    button.config = button.DB.config
+    button.keys = button.DB.keys
+    button.data = button.DB.data
+
 end
 
-function NeuronMenuBar:SetGrid(button, show, hide)
+
+function NeuronMenuBar:SetObjectVisibility(button, show, hide)
     --empty
 end
 
@@ -209,7 +217,7 @@ function NeuronMenuBar:GetDefaults(button)
 end
 
 function NeuronMenuBar:SetSkinned(button)
-
+    --empty
 end
 
 function NeuronMenuBar:GetSkinned(button)
@@ -220,7 +228,8 @@ function NeuronMenuBar:SetType(button, save)
     if (menuElements[button.id]) then
 
         button:SetWidth(menuElements[button.id]:GetWidth()-2)
-        --button:SetHeight(menuElements[button.id]:GetHeight()-2) --this is fixed in BfA and should be reenabled
+        button:SetHeight(menuElements[button.id]:GetHeight()-2)
+
         button:SetHitRectInsets(button:GetWidth()/2, button:GetWidth()/2, button:GetHeight()/2, button:GetHeight()/2)
 
         button.element = menuElements[button.id]

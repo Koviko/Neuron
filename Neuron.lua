@@ -4,7 +4,7 @@
 -------------------------------------------------------------------------------
 local addonName = ...
 
-local GDB, CDB
+local DB
 
 local NeuronFrame = CreateFrame("Frame", nil, UIParent) --this is a frame mostly used to assign OnEvent functions
 Neuron = LibStub("AceAddon-3.0"):NewAddon(NeuronFrame, "Neuron", "AceConsole-3.0", "AceEvent-3.0", "AceHook-3.0")
@@ -12,7 +12,6 @@ local NEURON = Neuron --this is the working pointer that all functions act upon,
 
 local L = LibStub("AceLocale-3.0"):GetLocale("Neuron")
 
-local icons = {}
 
 NEURON.PEW = false --flag that gets set when the player enters the world. It's used primarily for throttling events so that the player doesn't crash on loging with too many processes
 
@@ -20,40 +19,26 @@ NEURON.PEW = false --flag that gets set when the player enters the world. It's u
 -- AddOn namespace.
 -------------------------------------------------------------------------------
 
-local latestVersionNum = "0.9.25" --this variable is set to popup a welcome message upon updating/installing. Only change it if you want to pop up a message after the users next update
+local latestVersionNum = "0.9.36" --this variable is set to popup a welcome message upon updating/installing. Only change it if you want to pop up a message after the users next update
+
+local latestDBVersion = 1.2
 
 --I don't think it's worth localizing these two strings. It's too much effort for messages that are going to change often. Sorry to everyone who doesn't speak English
-local Install_Message = [[Thanks for installing Neuron.
-
-Neuron is currently in a "|cffffff00release|r" state.
-
-If you have any questions or concerns please direct all inquirires our Github page or through Curseforge, which are listed in the F.A.Q.
-
-Cheers,
-
--Soyier]]
-
 local Update_Message = [[Thanks for updating Neuron!
 
-A ton of work went into this release, and Neuron is now full steam ahead to Battle for Azeroth. There are a couple notes with this version:
+**IMPORTANT** Due to some necessary changes, your keybinds have been reset. Sorry for the inconvenience. YOU MUST /reload ONCE MORE BEFORE YOU CAN BIND NEW KEYS!
 
-1)The bag and menu bars have been completely rewritten, so expect a tiny bit of quirkiness (they're fixed in BfA).
+New: Phase 1 of the full database rewrite has been completed. This new version is MUCH easier to work with going foward. I have also introduced a database versioning scheme, and as of today everyone should be on database version 1.2.
 
-2)Neuron is fully updated for BfA, and you can get a working version from the bfa_beta branch on GitHub.
-
-3)The GUI re-write is well underway, and expect that to also land with the 8.0 update (baring any unforseen events).
-
-Lastly, if you are enjoying Neuron, please consider a small donation to help with development costs.
+Sorry for the long delay between the last update and this one. With any changed to databases, I wanted to be extra careful to avoid ruining a user's bar layout. This has been a very stressfull release for me.
 
 -Soyier]]
 
 
 --prepare the NEURON table with some subtables that will be used down the road
 NEURON['sIndex'] = {}
-NEURON['iIndex'] = {[1] = "INTERFACE\\ICONS\\INV_MISC_QUESTIONMARK" }
 NEURON['cIndex'] = {}
 NEURON['tIndex'] = {}
-NEURON['StanceIndex'] = {}
 NEURON['ShowGrids'] = {}
 NEURON['HideGrids'] = {}
 NEURON['BARIndex'] = {}
@@ -76,80 +61,10 @@ NEURON['maxStanceID'] = NUM_STANCE_SLOTS
 local BARIndex = NEURON.BARIndex
 local BARNameIndex = NEURON.BARNameIndex --I'm not sure if we need both BarIndex and BARNameIndex. They're pretty much the same
 local BTNIndex = NEURON.BTNIndex
-local ICONS = NEURON.iIndex
 
 ---these are the database tables that are going to hold our data. They are global because every .lua file needs access to them
-NeuronGDB = {
-	bars = {},
-	buttons = {},
 
-	buttonLoc = {-0.85, -111.45},
-	buttonRadius = 87.5,
-
-	throttle = 0.2,
-	timerLimit = 4,
-	snapToTol = 28,
-
-	mainbar = false,
-	zoneabilitybar = false,
-	vehicle = false,
-
-	firstRun = true,
-
-	NeuronIcon = {hide = false,},
-}
-
-NeuronCDB = {
-	bars = {},
-	buttons = {},
-
-	xbars = {},
-	xbtns = {},
-
-	bagbars = {},
-	bagbtns = {},
-
-	zoneabilitybars = {},
-	zoneabilitybtns = {},
-
-	menubars = {},
-	menubtns = {},
-
-	petbars = {},
-	petbtns = {},
-
-	statusbars = {},
-	statusbtns = {},
-
-	selfCast = false,
-	focusCast = false,
-	mouseOverMod= "NONE",
-
-	layOut = 1,
-
-	perCharBinds = false,
-	firstRun = true,
-
-	AutoWatch = 1,
-
-	xbarFirstRun = true,
-	zoneabilitybarFirstRun = true,
-	bagbarFirstRun = true,
-	menubarFirstRun = true,
-	petbarFirstRun = true,
-	statusbarFirstRun = true,
-
-}
-
-NeuronItemCache = {} --Not sure the practical benefit of this, it's used a bunch in Neuron-Button and Neuron-FLyout though
-
-
----this is the Default profile when you "load defaults" in the ace profile window
-NeuronDefaults = {}
-NeuronDefaults['profile'] = {} --populate the Default profile with globals
-NeuronDefaults.profile['NeuronCDB'] = NeuronCDB
-NeuronDefaults.profile['NeuronGDB'] = NeuronGDB
-NeuronDefaults.profile['NeuronItemCache'] = NeuronItemCache
+NeuronItemCache = {} --Stores a cache of all items that have been seen by a Neuron button
 
 
 --I think this is only used in Neuron-Flyouts
@@ -240,7 +155,11 @@ NEURON.STATEINDEX = {
 
 local handler
 
-local level, stanceStringsUpdated
+local level
+
+NEURON.BarEditMode = false
+NEURON.ButtonEditMode = false
+NEURON.BindingMode = false
 
 -------------------------------------------------------------------------
 --------------------Start of Functions-----------------------------------
@@ -258,32 +177,33 @@ function NEURON:OnInitialize()
 	NEURON.db.RegisterCallback(NEURON, "OnProfileReset", "RefreshConfig")
 	NEURON.db.RegisterCallback(NEURON, "OnDatabaseReset", "RefreshConfig")
 
+	DB = NEURON.db.profile
 
-	---These set the profile to be the defaults if there isn't already these values set in the profile
-	if (not Neuron.db.profile["NeuronCDB"]) then
-		NEURON.db.profile["NeuronCDB"] = NeuronCDB
-	end
-	if (not Neuron.db.profile["NeuronGDB"]) then
-		NEURON.db.profile["NeuronGDB"] = NeuronGDB
-	end
-	if (not Neuron.db.profile["NeuronItemCache"]) then
-		NEURON.db.profile["NeuronItemCache"] = NeuronItemCache
-	end
-	--------------------------------------------------------------------
+	----DATABASE VERSION CHECKING AND MIGRATING----------
 
-	NEURON:fixObjectTable(NEURON.db.profile)
+	if not DB.DBVersion then
+		--we need to know if a profile doesn't have a DBVersion because it is brand new, or because it pre-dates DB versioning
+		--when DB Versioning was introduced we also changed xbars to be called "extrabar", so if xbars exists in the database it means it's an old database, not a fresh one
+		--eventually we can get rid of this check and just assume that having no DBVersion means that it is a fresh profile
+		if not DB.NeuronCDB then --"NeuronCDB" is just a random table value that no longer exists. It's not important aside from the fact it no longer exists
+			DB.DBVersion = latestDBVersion
+		else
+			DB.DBVersion = 1.0
+		end
+	end
+
+	if DB.DBVersion ~= latestDBVersion then --checks if the DB version is out of date, and if so it calls the DB Fixer
+		NEURON:DBFixer(DB, DB.DBVersion)
+		DB.DBVersion = latestDBVersion
+	end
+	-----------------------------------------------------
 
 	---load saved variables into working variable containers
-	NeuronCDB = NEURON.db.profile["NeuronCDB"]
-	NeuronGDB = NEURON.db.profile["NeuronGDB"]
-	NeuronItemCache = NEURON.db.profile["NeuronItemCache"]
+	NeuronItemCache = DB.NeuronItemCache
 
 	---these are the working pointers to our global database tables. Each class has a local GDB and CDB table that is a pointer to the root of their associated database
-	GDB = NeuronGDB
-	CDB = NeuronCDB
-
-	NEURON.MAS = Neuron.MANAGED_ACTION_STATES
-	NEURON.MBS = Neuron.MANAGED_BAR_STATES
+	NEURON.MAS = NEURON.MANAGED_ACTION_STATES
+	NEURON.MBS = NEURON.MANAGED_BAR_STATES
 
 	NEURON.player = UnitName("player")
 	NEURON.class = select(2, UnitClass("player"))
@@ -301,7 +221,23 @@ function NEURON:OnInitialize()
 	frame:Hide()
 
 
+	StaticPopupDialogs["ReloadUI"] = {
+		text = "ReloadUI",
+		button1 = "Yes",
+		OnAccept = function()
+			ReloadUI()
+		end,
+		preferredIndex = 3,  -- avoid some UI taint, see http://www.wowace.com/announcements/how-to-avoid-some-ui-taint/
+	}
 
+	StaticPopupDialogs["ReloadUI"] = {
+		text = "ReloadUI",
+		button1 = "Yes",
+		OnAccept = function()
+			ReloadUI()
+		end,
+		preferredIndex = 3,  -- avoid some UI taint, see http://www.wowace.com/announcements/how-to-avoid-some-ui-taint/
+	}
 end
 
 --- **OnEnable** which gets called during the PLAYER_LOGIN event, when most of the data provided by the game is already present.
@@ -315,49 +251,43 @@ function NEURON:OnEnable()
 	NEURON:RegisterEvent("SPELLS_CHANGED")
 	NEURON:RegisterEvent("CHARACTER_POINTS_CHANGED")
 	NEURON:RegisterEvent("LEARNED_SPELL_IN_TAB")
-	NEURON:RegisterEvent("PET_UI_CLOSE")
 	NEURON:RegisterEvent("COMPANION_LEARNED")
 	NEURON:RegisterEvent("COMPANION_UPDATE")
-	NEURON:RegisterEvent("PET_JOURNAL_LIST_UPDATE")
 	NEURON:RegisterEvent("UNIT_LEVEL")
 	NEURON:RegisterEvent("UNIT_PET")
-	NEURON:RegisterEvent("TOYS_UPDATED")
+	--NEURON:RegisterEvent("TOYS_UPDATED")
+	--NEURON:RegisterEvent("TOYS_UPDATED")
+	--NEURON:RegisterEvent("PET_JOURNAL_LIST_UPDATE")
 
 	NEURON:HookScript(NEURON, "OnUpdate", "controlOnUpdate")
 
-
-	-- --I have no idea what this does
-	--[[if (CompanionsMicroButtonAlert) then
-		CompanionsMicroButtonAlert:HookScript("OnShow", function(frame)
-
-			if (not GDB.mainbar) then
-				frame:Hide()
-			end
-		end)
-	end]]
 
 	NEURON:UpdateStanceStrings()
 
 	GameMenuFrame:HookScript("OnShow", function(self)
 
-		if (NEURON.BarsShown) then
+		if (NEURON.BarEditMode) then
 			HideUIPanel(self)
-			NEURON.NeuronBar:ToggleBars(nil, true)
+			NEURON:ToggleBarEditMode(false)
 		end
 
-		if (NEURON.EditFrameShown) then
+		if (NEURON.ButtonEditMode) then
 			HideUIPanel(self)
-			NEURON:ToggleEditFrames(nil, true)
+			NEURON:ToggleButtonEditMode(false)
 		end
 
 		if (NEURON.BindingMode) then
 			HideUIPanel(self)
-			NEURON:ToggleBindings(nil, true)
+			NEURON:ToggleBindingMode(false)
 		end
 
 	end)
 
 	NEURON:LoginMessage()
+
+	for _,bar in pairs(BARIndex) do
+		NEURON.NeuronBar:Load(bar)
+	end
 
 
 end
@@ -374,41 +304,41 @@ end
 
 function NEURON:PLAYER_REGEN_DISABLED()
 
-	if (NEURON.EditFrameShown) then
-		NEURON:ToggleEditFrames(nil, true)
+	if (NEURON.ButtonEditMode) then
+		NEURON:ToggleButtonEditMode(false)
 	end
 
 	if (NEURON.BindingMode) then
-		NEURON:ToggleBindings(nil, true)
+		NEURON:ToggleBindingMode(false)
 	end
 
-	if (NEURON.BarsShown) then
-		NEURON.NeuronBar:ToggleBars(nil, true)
+	if (NEURON.BarEditMode) then
+		NEURON:ToggleBarEditMode(false)
 	end
 
 end
 
 
 function NEURON:PLAYER_ENTERING_WORLD()
-	GDB.firstRun = false
-	CDB.firstRun = false
+	DB.firstRun = false
 
 	NEURON:UpdateSpellIndex()
 	NEURON:UpdatePetSpellIndex()
 	NEURON:UpdateStanceStrings()
 	NEURON:UpdateCompanionData()
 	NEURON:UpdateToyData()
-	NEURON:UpdateIconIndex()
 
 	--Fix for Titan causing the Main Bar to not be hidden
 	if (IsAddOnLoaded("Titan")) then
 		TitanUtils_AddonAdjust("MainMenuBar", true)
 	end
 
-	NEURON:ToggleBlizzBar(GDB.mainbar)
-
+	if (DB.blizzbar == false) then
+		NEURON:HideBlizzard()
+	end
 
 	NEURON.PEW = true
+
 end
 
 function NEURON:ACTIVE_TALENT_GROUP_CHANGED()
@@ -429,12 +359,6 @@ end
 function NEURON:SPELLS_CHANGED()
 	NEURON:UpdateSpellIndex()
 	NEURON:UpdateStanceStrings()
-end
-
-function NEURON:PET_UI_CLOSE()
-	if not CollectionsJournal or not CollectionsJournal:IsShown() then
-		NEURON:UpdateCompanionData()
-	end
 end
 
 function NEURON:COMPANION_LEARNED()
@@ -461,13 +385,13 @@ function NEURON:UNIT_PET(eventName, ...)
 		if (NEURON.PEW) then
 			NEURON:UpdatePetSpellIndex()
 		end
-	end
+    end
 end
 
 function NEURON:UNIT_LEVEL(eventName, ...)
 	if ... == "player" then
 		NEURON.level = UnitLevel("player")
-	end
+    end
 end
 
 function NEURON:TOYS_UPDATED()
@@ -485,21 +409,8 @@ end
 -------------------------------------------------------------------------
 
 function NEURON:RefreshConfig()
-	NeuronCDB = NEURON.db.profile["NeuronCDB"]
-	NeuronGDB = NEURON.db.profile["NeuronGDB"]
-
-	GDB, CDB =  NeuronGDB, NeuronCDB
+	DB = NEURON.db.profile
 	NEURON.NeuronButton.ButtonProfileUpdate()
-
-
-	StaticPopupDialogs["ReloadUI"] = {
-		text = "ReloadUI",
-		button1 = "Yes",
-		OnAccept = function()
-			ReloadUI()
-		end,
-		preferredIndex = 3,  -- avoid some UI taint, see http://www.wowace.com/announcements/how-to-avoid-some-ui-taint/
-	}
 
 	StaticPopup_Show("ReloadUI")
 end
@@ -513,11 +424,11 @@ local slashFunctions = {
 	{L["Menu"], L["Menu_Description"], "ToggleMainMenu"},
 	{L["Create"], L["Create_Description"], "CreateNewBar"},
 	{L["Delete"], L["Delete_Description"], "DeleteBar"},
-	{L["Config"], L["Config_Description"], "ToggleBars"},
+	{L["Config"], L["Config_Description"], "ToggleBarEditMode"},
 	{L["Add"], L["Add_Description"], "AddObjectsToBar"},
 	{L["Remove"], L["Remove_Description"], "RemoveObjectsFromBar"},
-	{L["Edit"], L["Edit_Description"], "ToggleEditFrames"},
-	{L["Bind"], L["Bind_Description"], "ToggleBindings"},
+	{L["Edit"], L["Edit_Description"], "ToggleButtonEditMode"},
+	{L["Bind"], L["Bind_Description"], "ToggleBindingMode"},
 	{L["Scale"], L["Scale_Description"], "ScaleBar"},
 	{L["SnapTo"], L["SnapTo_Description"], "SnapToBar"},
 	{L["AutoHide"], L["AutoHide_Description"], "AutoHideBar"},
@@ -553,7 +464,7 @@ local slashFunctions = {
 	{L["DownClick"], L["DownClick_Description"], "DownClicksSet"},
 	{L["TimerLimit"], L["TimerLimit_Description"], "SetTimerLimit"},
 	{L["BarTypes"], L["BarTypes_Description"], "PrintBarTypes"},
-	{L["BlizzBar"], L["BlizzBar_Description"], "BlizzBar"},
+	{L["BlizzUI"], L["BlizzUI_Description"], "ToggleBlizzUI"},
 }
 
 
@@ -571,6 +482,19 @@ function NEURON:slashHandler(input)
 	for i = 2,#commandAndArgs do
 		args[i-1] = commandAndArgs[i]:lower()
 	end
+
+
+	--somewhat of a hack to insert a "true" as an arg if trying to toggle the edit modes
+	if command == "config" and NEURON.BarEditMode == false then
+		args[1] = true
+	end
+	if command == "edit" and NEURON.ButtonEditMode == false then
+		args[1] = true
+	end
+	if command == "bind" and NEURON.BindingMode == false then
+		args[1] = true
+	end
+
 
 
 	for i = 1,#slashFunctions do
@@ -625,13 +549,18 @@ function NEURON:controlOnUpdate(frame, elapsed)
 	NEURON.elapsed = NEURON.elapsed + elapsed
 
 	---Throttled OnUpdate calls
-	if (NEURON.elapsed > GDB.throttle and NEURON.PEW) then
+	if (NEURON.elapsed > DB.throttle and NEURON.PEW) then
 
-		NEURON.NeuronBar:controlOnUpdate(frame, elapsed)
 		NEURON.NeuronButton:cooldownsOnUpdate(frame, elapsed)
-		NEURON.NeuronZoneAbilityBar:controlOnUpdate(frame, elapsed)
-		NEURON.NeuronPetBar:controlOnUpdate(frame, elapsed)
-		NEURON.NeuronStatusBar:controlOnUpdate(frame, elapsed)
+		if NEURON.NeuronZoneAbilityBar then
+			NEURON.NeuronZoneAbilityBar:controlOnUpdate(frame, elapsed)
+		end
+		if NEURON.NeuronPetBar then
+			NEURON.NeuronPetBar:controlOnUpdate(frame, elapsed)
+		end
+		if NEURON.NeuronStatusBar then
+			NEURON.NeuronStatusBar:controlOnUpdate(frame, elapsed)
+		end
 
 		NEURON.elapsed = 0;
 	end
@@ -639,8 +568,8 @@ function NEURON:controlOnUpdate(frame, elapsed)
 	---UnThrottled OnUpdate calls
 	if(NEURON.PEW) then
 		NEURON.NeuronButton:controlOnUpdate(frame, elapsed) --this one needs to not be throttled otherwise spell button glows won't operate at 60fps
+		NEURON.NeuronBar:controlOnUpdate(frame, elapsed)
 	end
-
 end
 
 -----------------------------------------------------------------
@@ -652,23 +581,25 @@ function NEURON:LoginMessage()
 		text = Update_Message,
 		button1 = OKAY,
 		timeout = 0,
-		OnAccept = function() GDB.updateWarning = latestVersionNum end
-	}
-
-	StaticPopupDialogs["NEURON_INSTALL_MESSAGE"] = {
-		text = Install_Message,
-		button1 = OKAY,
-		timeout = 0,
-		OnAccept = function() GDB.updateWarning = latestVersionNum end,
+		OnAccept = function() DB.updateWarning = latestVersionNum end
 	}
 
 	---displays a info window on login for either fresh installs or updates
-	if (GDB.updateWarning ~= latestVersionNum and GDB.updateWarning~=nil) then
+	if (not DB.updateWarning or DB.updateWarning ~= latestVersionNum ) then
 		StaticPopup_Show("NEURON_UPDATE_WARNING")
-	elseif(GDB.updateWarning==nil) then
-		StaticPopup_Show("NEURON_INSTALL_MESSAGE")
+
+		NEURON:ChatMessage()
 	end
 
+end
+
+function NEURON:ChatMessage()
+	---TODO: Remove this eventually
+
+	if UnitFactionGroup('player') == "Horde" then
+		NEURON.Print("Click the following link to join the Neuron in-game community")
+		NEURON.Print("https://bit.ly/2Lu72NZ")
+	end
 end
 
 
@@ -700,16 +631,15 @@ end
 
 
 --- Creates a table containing provided data
--- @param index, bookType, spellName, altName, subName, spellID, spellID_Alt, spellType, spellLvl, isPassive, icon
+-- @param index, bookType, spellName, altName, spellID, spellID_Alt, spellType, spellLvl, isPassive, icon
 -- @return curSpell:  Table containing provided data
-function NEURON:SetSpellInfo(index, bookType, spellName, altName, subName, spellID, spellID_Alt, spellType, spellLvl, isPassive, icon)
+function NEURON:SetSpellInfo(index, bookType, spellName, altName, spellID, spellID_Alt, spellType, spellLvl, isPassive, icon)
 	local curSpell = {}
 
 	curSpell.index = index
 	curSpell.booktype = bookType
 	curSpell.spellName = spellName
 	curSpell.altName = altName
-	curSpell.subName = subName
 	curSpell.spellID = spellID
 	curSpell.spellID_Alt = spellID_Alt
 	curSpell.spellType = spellType
@@ -754,36 +684,26 @@ function NEURON:UpdateSpellIndex()
 				end
 			end
 
-			local altName, subName, icon, castTime, minRange, maxRange = GetSpellInfo(spellID)
+			local altName, _, icon, castTime, minRange, maxRange = GetSpellInfo(spellID)
 			if spellID ~= spellID_Alt then
 				altName = GetSpellInfo(spellID_Alt)
 			end
 
-			local spellData = NEURON:SetSpellInfo(i, BOOKTYPE_SPELL, spellName, altName, subName, spellID, spellID_Alt, spellType, spellLvl, isPassive, icon)
+			local spellData = NEURON:SetSpellInfo(i, BOOKTYPE_SPELL, spellName, altName, spellID, spellID_Alt, spellType, spellLvl, isPassive, icon)
 
-			if (subName and #subName > 0) then
-				NEURON.sIndex[(spellName.."("..subName..")"):lower()] = spellData
-			else
-				NEURON.sIndex[(spellName):lower()] = spellData
-				NEURON.sIndex[(spellName):lower().."()"] = spellData
-			end
+			NEURON.sIndex[(spellName):lower()] = spellData
+			NEURON.sIndex[(spellName):lower().."()"] = spellData
+
 
 			if (altName and altName ~= spellName) then
-				if (subName and #subName > 0) then
-					NEURON.sIndex[(altName.."("..subName..")"):lower()] = spellData
-				else
-					NEURON.sIndex[(altName):lower()] = spellData
-					NEURON.sIndex[(altName):lower().."()"] = spellData
-				end
+				NEURON.sIndex[(altName):lower()] = spellData
+				NEURON.sIndex[(altName):lower().."()"] = spellData
 			end
 
 			if (spellID) then
 				NEURON.sIndex[spellID] = spellData
 			end
 
-			if (icon and not icons[icon]) then
-				ICONS[#ICONS+1] = icon; icons[icon] = true
-			end
 		end
 	end
 
@@ -803,32 +723,24 @@ function NEURON:UpdateSpellIndex()
 				local isPassive = IsPassiveSpell(offsetIndex, BOOKTYPE_PROFESSION)
 
 				if (spellName and spellType ~= "FUTURESPELL") then
-					local altName, subName, icon, castTime, minRange, maxRange = GetSpellInfo(spellID)
-					local spellData = NEURON:SetSpellInfo(offsetIndex, BOOKTYPE_PROFESSION, spellName, altName, subName, spellID, spellID_Alt, spellType, spellLvl, isPassive, icon)
+					local altName, _, icon, castTime, minRange, maxRange = GetSpellInfo(spellID)
+					local spellData = NEURON:SetSpellInfo(offsetIndex, BOOKTYPE_PROFESSION, spellName, altName, spellID, spellID_Alt, spellType, spellLvl, isPassive, icon)
 
-					if (subName and #subName > 0) then
-						NEURON.sIndex[(spellName.."("..subName..")"):lower()] = spellData
-					else
-						NEURON.sIndex[(spellName):lower()] = spellData
-						NEURON.sIndex[(spellName):lower().."()"] = spellData
-					end
+					NEURON.sIndex[(spellName):lower()] = spellData
+					NEURON.sIndex[(spellName):lower().."()"] = spellData
+
 
 					if (altName and altName ~= spellName) then
-						if (subName and #subName > 0) then
-							NEURON.sIndex[(altName.."("..subName..")"):lower()] = spellData
-						else
-							NEURON.sIndex[(altName):lower()] = spellData
-							NEURON.sIndex[(altName):lower().."()"] = spellData
-						end
+						NEURON.sIndex[(altName):lower()] = spellData
+						NEURON.sIndex[(altName):lower().."()"] = spellData
+
 					end
 
 					if (spellID) then
 						NEURON.sIndex[spellID] = spellData
 					end
 
-					if (icon and not icons[icon]) then
-						ICONS[#ICONS+1] = icon; icons[icon] = true
-					end
+
 				end
 			end
 		end
@@ -847,12 +759,12 @@ function NEURON:UpdateSpellIndex()
 			if (isKnown and petIndex and petName and #petName > 0) then
 				local spellName = GetSpellInfo(spellID)
 
-				local altName, subName, icon, castTime, minRange, maxRange = GetSpellInfo(spellName)
+				local altName, _, icon, castTime, minRange, maxRange = GetSpellInfo(spellName)
 
 				for k,v in pairs(NEURON.sIndex) do
 
 					if (v.spellName:find(petName.."$")) then
-						local spellData = NEURON:SetSpellInfo(v.index, v.booktype, v.spellName, nil, v.subName, spellID, v.spellID_Alt, v.spellType, v.spellLvl, v.isPassive, v.icon)
+						local spellData = NEURON:SetSpellInfo(v.index, v.booktype, v.spellName, nil, spellID, v.spellID_Alt, v.spellType, v.spellLvl, v.isPassive, v.icon)
 
 						NEURON.sIndex[(spellName):lower()] = spellData
 						NEURON.sIndex[(spellName):lower().."()"] = spellData
@@ -863,7 +775,6 @@ function NEURON:UpdateSpellIndex()
 		end
 	end
 
-
 end
 
 
@@ -873,29 +784,25 @@ function NEURON:UpdatePetSpellIndex()
 	if (HasPetSpells()) then
 		for i=1,HasPetSpells() do
 			local spellName, _ = GetSpellBookItemName(i, BOOKTYPE_PET)
-			local spellType, spellID = GetSpellBookItemInfo(i, BOOKTYPE_PET)
-			local spellID_Alt = spellID
+			local spellType, _ = GetSpellBookItemInfo(i, BOOKTYPE_PET)
 			local spellLvl = GetSpellAvailableLevel(i, BOOKTYPE_PET)
-			--local icon = GetSpellBookItemTexture(i, BOOKTYPE_PET)
 			local isPassive = IsPassiveSpell(i, BOOKTYPE_PET)
 
 			if (spellName and spellType ~= "FUTURESPELL") then
-				local altName, subName, icon, castTime, minRange, maxRange = GetSpellInfo(spellName)
-				local spellData = NEURON:SetSpellInfo(i, BOOKTYPE_PET, spellName, altName, subName, spellID, spellID_Alt, spellType, spellLvl, isPassive, icon)
-				if (subName and #subName > 0) then
-					NEURON.sIndex[(spellName.."("..subName..")"):lower()] = spellData
-				else
-					NEURON.sIndex[(spellName):lower()] = spellData
-					NEURON.sIndex[(spellName):lower().."()"] = spellData
-				end
+				local altName, _, icon, castTime, minRange, maxRange, spellID = GetSpellInfo(spellName)
+				local spellID_Alt = spellID
+
+				local spellData = NEURON:SetSpellInfo(i, BOOKTYPE_PET, spellName, altName, spellID, spellID_Alt, spellType, spellLvl, isPassive, icon)
+
+				NEURON.sIndex[(spellName):lower()] = spellData
+				NEURON.sIndex[(spellName):lower().."()"] = spellData
+
 
 				if (spellID) then
 					NEURON.sIndex[spellID] = spellData
 				end
 
-				if (icon and not icons[icon]) then
-					ICONS[#ICONS+1] = icon; icons[icon] = true
-				end
+
 			end
 		end
 	end
@@ -985,11 +892,6 @@ function NEURON:UpdateCompanionData()
 				NEURON.cIndex[spell:lower().."()"] = companionData
 				NEURON.cIndex[petID] = companionData
 
-				if(type(icon) == "number") then
-					if (icon and not icons[icon]) then
-						ICONS[#ICONS+1] = icon; icons[icon] = true
-					end
-				end
 			end
 		end
 	end
@@ -997,7 +899,6 @@ function NEURON:UpdateCompanionData()
 	local mountIDs = C_MountJournal.GetMountIDs()
 	for i,id in pairs(mountIDs) do
 		local creatureName , spellID = C_MountJournal.GetMountInfoByID(id) --, creatureID, _, active, summonable, source, isFavorite, isFactionSpecific, faction, unknown, owned = C_MountJournal.GetMountInfoByID(i)
-		--local link = GetSpellLink(creatureName)
 
 		if (spellID) then
 			local spell, _, icon = GetSpellInfo(spellID)
@@ -1007,218 +908,190 @@ function NEURON:UpdateCompanionData()
 				NEURON.cIndex[spell:lower().."()"] = companionData
 				NEURON.cIndex[spellID] = companionData
 
-				if (icon and not icons[icon]) then
-					ICONS[#ICONS+1] = icon; icons[icon] = true
-				end
 			end
 		end
 	end
 end
 
 
-
-
---- Creates a table of the available spell icon filenames for use in macros
-function NEURON:UpdateIconIndex()
-
-	local temp = {}
-
-	GetMacroIcons(temp)
-
-	for k,icon in ipairs(temp) do
-		if (not icons[icon]) then
-			ICONS[#ICONS+1] = icon; icons[icon] = true
-		end
-
-	end
-
-end
 
 function NEURON:UpdateStanceStrings()
 	if (NEURON.class == "DRUID" or
 			NEURON.class == "ROGUE") then
 
-		wipe(NEURON.StanceIndex)
+		local icon, active, castable, spellID
 
-		local icon, name, active, castable, spellID, UJU
 		local states = "[stance:0] stance0; "
 
-		for i=1,8 do
-			NEURON.STATES["stance"..i] = nil
-		end
+		if (NEURON.class == "DRUID") then
 
-		for i=1,GetNumShapeshiftForms() do
-			icon, name, active, castable, spellID = GetShapeshiftFormInfo(i)
+			NEURON.STATES["stance0"] = L["Caster Form"]
 
-			if (name) then
-				if (spellID) then
-					NEURON.StanceIndex[i] = spellID
+			for i=1,6 do
+				NEURON.STATES["stance"..i] = nil
+			end
+
+			for i=1,GetNumShapeshiftForms() do
+				icon, active, castable, spellID = GetShapeshiftFormInfo(i)
+
+				local druidFormTable = {
+					{"Bear Form", 5487},
+					{"Cat Form", 768},
+					{"Travel Form", 783},
+					{"Moonkin Form", 24858},
+					{"Treant Form", 114282},
+					{"Stag Form", 210053},
+				}
+
+				--compare the current i's Shapeshift Form spellID to the ones in the druidFormTable, and choose the appropriate string
+			 	for j=1,#druidFormTable do
+					if spellID == druidFormTable[j][2] then
+						NEURON.STATES["stance"..i] = druidFormTable[j][1]
+						states = states.."[stance:"..i.."] stance"..i.."; "
+					end
 				end
 
-				NEURON.STATES["stance"..i] = name
-				states = states.."[stance:"..i.."] stance"..i.."; "
 			end
 		end
 
 		--Adds Shadow Dance State for Subelty Rogues
-		if (NEURON.class == "ROGUE" and GetSpecialization() == 3 ) then
-			NEURON.STATES["stance2"] = L["Shadow Dance"]
-			NEURON.StanceIndex[2] = 185313
+		if (NEURON.class == "ROGUE") then
+
+			NEURON.STATES["stance0"] = L["Melee"]
+
+			NEURON.STATES["stance1"] = L["Stealth"]
+			states = states.."[stance:1] stance1; "
+
+			NEURON.STATES["stance2"] = L["Vanish"]
 			states = states.."[stance:2] stance2; "
+
+			if(GetSpecialization() == 3) then
+				NEURON.STATES["stance3"] = L["Shadow Dance"]
+				states = states.."[stance:3] stance3; "
+			end
 		end
 
-		states = states:gsub("; $", "")
-
-		if (not stanceStringsUpdated) then
-			if (NEURON.class == "DRUID") then
-				NEURON.STATES.stance0 = L["Caster Form"]
-			end
-
-			if (NEURON.class == "ROGUE") then
-				NEURON.STATES.stance0 = L["Melee"]
-			end
-
-			stanceStringsUpdated = true
-		end
+		local states = states:gsub("; $", "")
 
 		NEURON.MAS.stance.states = states
 	end
 end
 
 
-function NEURON:UpdateData(data, defaults)
-	-- Add new vars
-	for key,value in pairs(defaults) do
-
-		if (data[key] == nil) then
-
-			if (data[key:lower()] ~= nil) then
-
-				data[key] = data[key:lower()]
-				data[key:lower()] = nil
-			else
-				data[key] = value
-			end
-		end
-	end
-	-- Add new vars
-
-	-- Var fixes
-
-	---none
-
-	-- Var fixes
-
-	-- Kill old vars
-	for key,value in pairs(data) do
-
-		if (defaults[key] == nil) then
-			data[key] = nil
-		end
-
-	end
-	-- Kill old vars
-end
-
-
-function NEURON:ToggleBlizzBar(on)
+---this is taken from Bartender4, thanks guys!
+function NEURON:HideBlizzard()
 	if (InCombatLockdown()) then
 		return
 	end
 
-	if not handler then
-		handler = CreateFrame("Frame", nil, UIParent, "SecureHandlerStateTemplate")
+	-- Hidden parent frame
+	local UIHider = CreateFrame("Frame")
+	UIHider:Hide()
+
+	if MultiBarBottomLeft then
+		MultiBarBottomLeft:Hide()
+		MultiBarBottomLeft:SetParent(UIHider)
 	end
 
-	if (on) then
-		local button
+	if MultiBarBottomRight then
+		MultiBarBottomRight:Hide()
+		MultiBarBottomRight:SetParent(UIHider)
+	end
 
-		for i=1, NUM_OVERRIDE_BUTTONS do
-			button = _G["OverrideActionBarButton"..i]
-			handler:WrapScript(button, "OnShow", [[
-				local key = GetBindingKey("ACTIONBUTTON"..self:GetID())
-				if (key) then
-					self:SetBindingClick(true, key, self:GetName())
-				end
-			]])
-			handler:WrapScript(button, "OnHide", [[
-				local key = GetBindingKey("ACTIONBUTTON"..self:GetID())
-				if (key) then
-					self:ClearBinding(key)
-				end
-			]])
-		end
+	if MultiBarLeft then
+		MultiBarLeft:Hide()
+		MultiBarLeft:SetParent(UIHider)
+	end
 
-		TextStatusBar_Initialize(MainMenuExpBar)
-		MainMenuExpBar:RegisterEvent("PLAYER_ENTERING_WORLD")
-		MainMenuExpBar:RegisterEvent("PLAYER_XP_UPDATE")
-		MainMenuExpBar.textLockable = 1
-		MainMenuExpBar.cvar = "xpBarText"
-		MainMenuExpBar.cvarLabel = "XP_BAR_TEXT"
-		MainMenuExpBar.alwaysPrefix = true
-		MainMenuExpBar_SetWidth(1024)
+	if MultiBarRight then
+		MultiBarRight:Hide()
+		MultiBarRight:SetParent(UIHider)
+	end
 
-		MainMenuBar_OnLoad(MainMenuBarArtFrame)
-		MainMenuBarVehicleLeaveButton_OnLoad(MainMenuBarVehicleLeaveButton)
 
-		MainMenuBar:SetPoint("BOTTOM", 0, 0)
-		MainMenuBar:Show()
+	MainMenuBar:UnregisterAllEvents()
+	MainMenuBar:SetParent(UIHider)
+	MainMenuBar:Hide()
+	MainMenuBar:EnableMouse(false)
+	MainMenuBar:UnregisterEvent("DISPLAY_SIZE_CHANGED")
+	MainMenuBar:UnregisterEvent("UI_SCALE_CHANGED")
 
-		OverrideActionBar_OnLoad(OverrideActionBar)
-		OverrideActionBar:SetPoint("BOTTOM", 0, 0)
 
-		ExtraActionBarFrame:SetPoint("BOTTOM", 0, 160)
+	MainMenuBarArtFrame:Hide()
+	MainMenuBarArtFrame:SetParent(UIHider)
 
-		ActionBarController_OnLoad(ActionBarController)
 
-	else
-		local button
+	if MicroButtonAndBagsBar then
+		MicroButtonAndBagsBar:Hide()
+		MicroButtonAndBagsBar:SetParent(UIHider)
+	end
 
-		for i=1, NUM_OVERRIDE_BUTTONS do
-			button = _G["OverrideActionBarButton"..i]
-			handler:UnwrapScript(button, "OnShow")
-			handler:UnwrapScript(button, "OnHide")
-		end
-
+	if MainMenuExpBar then
 		MainMenuExpBar:UnregisterAllEvents()
-		MainMenuBarArtFrame:UnregisterAllEvents()
-		MainMenuBarArtFrame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
-		MainMenuBarArtFrame:RegisterEvent("UNIT_LEVEL")
-		MainMenuBarVehicleLeaveButton:UnregisterAllEvents()
-
-		MainMenuBar:SetPoint("BOTTOM", 0, -200)
-		MainMenuBar:Hide()
-
-		OverrideActionBar:UnregisterAllEvents()
-		OverrideActionBar:SetPoint("BOTTOM", 0, -200)
-		OverrideActionBar:Hide()
-
-		ExtraActionBarFrame:SetPoint("BOTTOM", 0, -200)
-		ExtraActionBarFrame:Hide()
-
-		ActionBarController:UnregisterAllEvents()
+		MainMenuExpBar:Hide()
+		MainMenuExpBar:SetParent(UIHider)
+		MainMenuExpBar:SetDeferAnimationCallback(nil)
 	end
+
+	if MainMenuBarMaxLevelBar then
+		MainMenuBarMaxLevelBar:Hide()
+		MainMenuBarMaxLevelBar:SetParent(UIHider)
+	end
+
+	if ReputationWatchBar then
+		ReputationWatchBar:UnregisterAllEvents()
+		ReputationWatchBar:Hide()
+		ReputationWatchBar:SetParent(UIHider)
+	end
+
+	if ArtifactWatchBar then
+		ArtifactWatchBar:SetParent(UIHider)
+		ArtifactWatchBar.StatusBar:SetDeferAnimationCallback(nil)
+	end
+
+	if HonorWatchBar then
+		HonorWatchBar:SetParent(UIHider)
+		HonorWatchBar.StatusBar:SetDeferAnimationCallback(nil)
+	end
+
+	OverrideActionBar_OnLoad(OverrideActionBar)
+	OverrideActionBar:UnregisterAllEvents()
+	OverrideActionBar:Hide()
+	OverrideActionBar:SetParent(UIHider)
+
+	StanceBarFrame:UnregisterAllEvents()
+	StanceBarFrame:Hide()
+	StanceBarFrame:SetParent(UIHider)
+
+	PossessBarFrame:UnregisterAllEvents()
+	PossessBarFrame:Hide()
+	PossessBarFrame:SetParent(UIHider)
+
+	PetActionBarFrame:UnregisterAllEvents()
+	PetActionBarFrame:Hide()
+	PetActionBarFrame:SetParent(UIHider)
+
+
 end
 
-
-function NEURON:BlizzBar()
-	if (GDB.mainbar) then
-		GDB.mainbar = false
+function NEURON:ToggleBlizzUI()
+	if (DB.blizzbar == true) then
+		DB.blizzbar = false
+		NEURON:HideBlizzard()
+		StaticPopup_Show("ReloadUI")
 	else
-		GDB.mainbar = true
-	end
-	NEURON:ToggleBlizzBar(GDB.mainbar)
-
-end
-
-
-
-function NEURON:ToggleButtonGrid(show, hide)
-	for id,btn in pairs(BTNIndex) do
-		btn:SetGrid(btn, show, hide)
+		DB.blizzbar = true
+		StaticPopup_Show("ReloadUI")
 	end
 end
 
+
+
+function NEURON:ToggleButtonGrid(show)
+	for id,btn in pairs(NEURON.BTNIndex) do
+		btn:SetObjectVisibility(btn, show)
+	end
+end
 
 
 
@@ -1228,38 +1101,54 @@ function NEURON:ToggleMainMenu(show, hide)
 	InterfaceOptionsFrame_OpenToCategory("Neuron");
 end
 
+function NEURON:ToggleBarEditMode(show)
 
-function NEURON:ToggleEditFrames(show, hide)
+	if show and NEURON.BarEditMode == false then
 
-	if (NEURON.EditFrameShown or hide) then
+		NEURON.BarEditMode = true
 
-		NEURON.EditFrameShown = false
+		NEURON:ToggleButtonEditMode(false)
+		NEURON:ToggleBindingMode(false)
 
-		for index, editor in pairs(NEURON.EDITIndex) do
-			editor:Hide()
-			editor.object.editmode = NEURON.EditFrameShown
-			editor:SetFrameStrata("LOW")
+		for index, bar in pairs(BARIndex) do
+			bar:Show() --this shows the transparent overlay over a bar
+			NEURON.NeuronBar:Update(bar, true)
+			NEURON.NeuronBar:UpdateObjectVisibility(bar, true)
 		end
-
-		for _,bar in pairs(BARIndex) do
-			NEURON.NeuronBar:UpdateObjectGrid(bar, NEURON.EditFrameShown)
-			if (bar.handler:GetAttribute("assertstate")) then
-				bar.handler:SetAttribute("state-"..bar.handler:GetAttribute("assertstate"), bar.handler:GetAttribute("activestate") or "homestate")
-			end
-		end
-
-		NEURON.NeuronButton:ChangeObject()
 
 	else
 
-		--NEURON:ToggleMainMenu(nil, true)
-		NEURON.NeuronBar:ToggleBars(nil, true)
-		NEURON:ToggleBindings(nil, true)
+		NEURON.BarEditMode = false
 
-		NEURON.EditFrameShown = true
+		for index, bar in pairs(BARIndex) do
+			bar:Hide()
+			NEURON.NeuronBar:Update(bar, nil, true)
+			NEURON.NeuronBar:UpdateObjectVisibility(bar)
+		end
+
+		NEURON.NeuronBar:ChangeBar(nil)
+
+		if (NeuronBarEditor)then
+			NeuronBarEditor:Hide()
+		end
+
+	end
+
+end
+
+function NEURON:ToggleButtonEditMode(show)
+
+	if show and NEURON.ButtonEditMode == false then
+
+		NEURON.ButtonEditMode = true
+
+		NEURON:ToggleBarEditMode(false)
+		NEURON:ToggleBindingMode(false)
+
 
 		for index, editor in pairs(NEURON.EDITIndex) do
-			editor:Show(); editor.object.editmode = NEURON.EditFrameShown
+			editor:Show()
+			editor.object.editmode = true
 
 			if (editor.object.bar) then
 				editor:SetFrameStrata(editor.object.bar:GetFrameStrata())
@@ -1268,43 +1157,73 @@ function NEURON:ToggleEditFrames(show, hide)
 		end
 
 		for _,bar in pairs(BARIndex) do
-			NEURON.NeuronBar:UpdateObjectGrid(bar, NEURON.EditFrameShown)
+			NEURON.NeuronBar:UpdateObjectVisibility(bar, true)
 		end
+
+	else
+
+		NEURON.ButtonEditMode = false
+
+		for index, editor in pairs(NEURON.EDITIndex) do
+			editor:Hide()
+			editor.object.editmode = false
+			editor:SetFrameStrata("LOW")
+		end
+
+		for _,bar in pairs(BARIndex) do
+			NEURON.NeuronBar:UpdateObjectVisibility(bar)
+
+			if (bar.handler:GetAttribute("assertstate")) then
+				bar.handler:SetAttribute("state-"..bar.handler:GetAttribute("assertstate"), bar.handler:GetAttribute("activestate") or "homestate")
+			end
+		end
+
+		NEURON.NeuronButton:ChangeObject()
+
 	end
 end
 
 
---- Toggles the displaying of key bindings
--- @param show: True if to be displayed
--- @param hide: True if to be hidden
-function NEURON:ToggleBindings(show, hide)
-	if (NEURON.BindingMode or hide) then
-		NEURON.BindingMode = false
+function NEURON:ToggleBindingMode(show)
 
-		for _, binder in pairs(NEURON.BINDIndex) do
-			binder:Hide(); binder.button.editmode = NEURON.BindingMode
-			binder:SetFrameStrata("LOW")
-			if (not NEURON.BarsShown) then
-				binder.button:SetGrid(binder.button)
-			end
-		end
-
-	else
-		NEURON:ToggleEditFrames(nil, true)
+	if show and NEURON.BindingMode == false then
 
 		NEURON.BindingMode = true
 
+		NEURON:ToggleButtonEditMode(false)
+		NEURON:ToggleBarEditMode(false)
+
+
 		for _, binder in pairs(NEURON.BINDIndex) do
+
 			binder:Show()
-			binder.button.editmode = NEURON.BindingMode
+			binder.button.editmode = true
 
 			if (binder.button.bar) then
 				binder:SetFrameStrata(binder.button.bar:GetFrameStrata())
 				binder:SetFrameLevel(binder.button.bar:GetFrameLevel()+4)
-				binder.button:SetGrid(binder.button, true)
 			end
 		end
 
+		for _,bar in pairs(BARIndex) do
+			NEURON.NeuronBar:UpdateObjectVisibility(bar, true)
+		end
+
+	else
+
+		NEURON.BindingMode = false
+
+		for _, binder in pairs(NEURON.BINDIndex) do
+			binder:Hide()
+			binder.button.editmode = false
+
+			binder:SetFrameStrata("LOW")
+
+		end
+
+		for _,bar in pairs(BARIndex) do
+			NEURON.NeuronBar:UpdateObjectVisibility(bar)
+		end
 	end
 end
 
@@ -1366,7 +1285,7 @@ function NEURON:PrintBarTypes()
 end
 
 ---This function is called each and every time a Bar-Module loads. It adds the module to the list of currently avaible bars. If we add new bars in the future, this is the place to start
-function NEURON:RegisterBarClass(class, barType, barLabel, objType, barGDB, barCDB, objTable, objGDB, objFrameType, objTemplate, objMetaTable, objMax, gDef, cDef, barCreateMore)
+function NEURON:RegisterBarClass(class, barType, barLabel, objType, barDB, objTable, objDB, objFrameType, objTemplate, objMetaTable, objMax, barCreateMore)
 
 	NEURON.ModuleIndex = NEURON.ModuleIndex + 1
 
@@ -1374,12 +1293,9 @@ function NEURON:RegisterBarClass(class, barType, barLabel, objType, barGDB, barC
 		barType = barType,
 		barLabel = barLabel,
 		barCreateMore = barCreateMore,
-		GDB = barGDB,
-		CDB = barCDB,
-		gDef = gDef,
-		cDef = cDef,
+		barDB = barDB,
 		objTable = objTable, --this is all the buttons associated with a given bar
-		objGDB = objGDB,
+		objDB = objDB,
 		objPrefix = "Neuron"..objType:gsub("%s+", ""),
 		objFrameT = objFrameType,
 		objTemplate = objTemplate,
@@ -1404,8 +1320,8 @@ function NEURON:SetTimerLimit(msg)
 	local limit = tonumber(msg:match("%d+"))
 
 	if (limit and limit > 0) then
-		GDB.timerLimit = limit
-		NEURON:Print(format(L["Timer_Limit_Set_Message"], GDB.timerLimit))
+		DB.timerLimit = limit
+		NEURON:Print(format(L["Timer_Limit_Set_Message"], DB.timerLimit))
 	else
 		NEURON:Print(L["Timer_Limit_Invalid_Message"])
 	end

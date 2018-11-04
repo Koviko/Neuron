@@ -7,7 +7,7 @@
 -------------------------------------------------------------------------------
 
 local NEURON = Neuron
-local GDB, CDB, SPEC, btnGDB, btnCDB, control
+local DB, SPEC, btnDB, control
 
 local BUTTON = NEURON.BUTTON
 
@@ -52,7 +52,7 @@ local ANCHOR_LOGIN_Updater
 local itemScanner
 local flyoutBarUpdater
 
-local extensions
+--local extensions
 
 -----------------------------------------------------------------------------
 --------------------------INIT FUNCTIONS-------------------------------------
@@ -63,8 +63,7 @@ local extensions
 --- or setting up slash commands.
 function NeuronFlyouts:OnInitialize()
 
-	GDB = NeuronGDB
-	CDB = NeuronCDB
+	DB = NEURON.db.profile
 
 	local strings = { NeuronTooltipScan:GetRegions() }
 
@@ -104,9 +103,8 @@ function NeuronFlyouts:OnEnable()
 	f.timerFrame:Hide()
 
 	self:RegisterEvent("PLAYER_ENTERING_WORLD")
-	self:RegisterEvent("EXECUTE_CHAT_LINE")
+	--self:RegisterEvent("EXECUTE_CHAT_LINE")
 	self:RegisterEvent("BAG_UPDATE")
-	self:RegisterEvent("PLAYER_INVENTORY_CHANGED")
 	self:RegisterEvent("COMPANION_LEARNED")
 	self:RegisterEvent("COMPANION_UPDATE")
 	self:RegisterEvent("LEARNED_SPELL_IN_TAB")
@@ -115,7 +113,7 @@ function NeuronFlyouts:OnEnable()
 	self:RegisterEvent("EQUIPMENT_SETS_CHANGED")
 	self:RegisterEvent("SPELLS_CHANGED")
 	self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
-	self:RegisterEvent("TOYS_UPDATED")
+	--self:RegisterEvent("TOYS_UPDATED")
 
 	NeuronFlyouts:HookScript(f.timerFrame, "OnUpdate", "timerFrame_OnUpdate")
 
@@ -137,31 +135,11 @@ function NeuronFlyouts:EXECUTE_CHAT_LINE(eventName, ...)
 
 	local command, options = (...):match("(/%a+)%s(.+)")
 
-	if (extensions[command]) then extensions[command](options) end
+	--if (extensions[command]) then extensions[command](options) end
 
 end
 
 function NeuronFlyouts:BAG_UPDATE(eventName, ...)
-
-	local bag = ...
-	if bag>=0 and bag<=4 then
-		f.bagsToCache[bag] = true
-		if NEURON.PEW then
-			f.StartTimer(0.05,f.CacheBags)
-		end
-	end
-
-	for anchor in pairs(ANCHORIndex) do
-		for types in gmatch(anchor.flyout.types, "%a+[%+]*") do
-			if (types:find("^i")) then
-				tinsert(needsUpdate, anchor)
-			end
-		end
-	end
-	ANCHOR_LOGIN_Updater:Show()
-end
-
-function NeuronFlyouts:PLAYER_INVENTORY_CHANGED(eventName, ...)
 
 	local bag = ...
 	if bag>=0 and bag<=4 then
@@ -278,7 +256,7 @@ function NeuronFlyouts:PLAYER_ENTERING_WORLD()
 
 	f.CacheBags()
 
-	extensions = { ["/flyout"] = NeuronFlyouts.command_flyout }
+	--extensions = { ["/flyout"] = NeuronFlyouts.command_flyout }
 
 end
 
@@ -414,13 +392,9 @@ function f.filter.none(arg)
 		end
 	end
 	-- if a spell
-	local spellName,subName = GetSpellInfo(arg)
+	local spellName = GetSpellInfo(arg)
 	if spellName and spellName~="" then
-		if subName and subName~="" then
-			addToTable("spell",format("%s(%s)",spellName,subName)) -- for Polymorph(Turtle)
-		else
-			addToTable("spell",spellName)
-		end
+		addToTable("spell",spellName)
 		return
 	end
 	-- if a toy
@@ -823,11 +797,7 @@ function NeuronFlyouts:GetBlizzData(button, data)
 		end
 
 		if (isKnown and visible) then
-			spell, subName = GetSpellInfo(spellID)
-
-			if (subName and #subName > 0) then
-				spell = spell.."("..subName..")"
-			end
+			spell = GetSpellInfo(spellID)
 
 			data[spell] = "blizz"
 		end
@@ -1021,7 +991,7 @@ function NeuronFlyouts:Flyout_UpdateButtons(fbutton, init)
 		end
 
 		flyout.bar.objCount = count
-		flyout.bar.gdata.objectList = list
+		flyout.bar.data.objectList = list
 
 		if (not init) then
 			tinsert(barsToUpdate, flyout.bar)
@@ -1074,27 +1044,27 @@ function NeuronFlyouts:Flyout_UpdateBar(button)
 	end
 
 	if (shape) then
-		flyout.bar.gdata.shape = shape
+		flyout.bar.data.shape = shape
 	else
-		flyout.bar.gdata.shape = 1
+		flyout.bar.data.shape = 1
 	end
 
 	if (columns) then
-		flyout.bar.gdata.columns = columns
+		flyout.bar.data.columns = columns
 	else
-		flyout.bar.gdata.columns = 12
+		flyout.bar.data.columns = 12
 	end
 
 	if (pad) then
-		flyout.bar.gdata.padH = pad
-		flyout.bar.gdata.padV = pad
-		flyout.bar.gdata.arcStart = 0
-		flyout.bar.gdata.arcLength = 359
+		flyout.bar.data.padH = pad
+		flyout.bar.data.padV = pad
+		flyout.bar.data.arcStart = 0
+		flyout.bar.data.arcLength = 359
 	else
-		flyout.bar.gdata.padH = 0
-		flyout.bar.gdata.padV = 0
-		flyout.bar.gdata.arcStart = 0
-		flyout.bar.gdata.arcLength = 359
+		flyout.bar.data.padH = 0
+		flyout.bar.data.padV = 0
+		flyout.bar.data.arcStart = 0
+		flyout.bar.data.arcLength = 359
 	end
 	flyout.bar:ClearAllPoints()
 	flyout.bar:SetPoint(pointA, button, pointB, 0, 0)
@@ -1214,7 +1184,6 @@ function NeuronFlyouts:Flyout_ReleaseButton(fbutton, button)
 	button:SetAttribute("flyoutMacro", nil)
 
 	button:ClearAllPoints()
-	--button:SetParent(STORAGE)
 	button:SetPoint("CENTER")
 	button:Hide()
 end
@@ -1227,9 +1196,9 @@ function NeuronFlyouts:Flyout_SetData(button, bar)
 
 		button.tooltips = true
 		button.tooltipsEnhanced = true
-		--self.tooltipsCombat = bar.cdata.tooltipsCombat
-		--self:SetFrameStrata(bar.gdata.objectStrata)
-		--self:SetScale(bar.gdata.scale)
+		--self.tooltipsCombat = bar.data.tooltipsCombat
+		--self:SetFrameStrata(bar.data.objectStrata)
+		--self:SetScale(bar.data.scale)
 	end
 
 	button.hotkey:Hide()
@@ -1355,7 +1324,6 @@ function NeuronFlyouts:Flyout_ReleaseBar(button, bar)
 	bar:SetHeight(43)
 
 	bar:ClearAllPoints()
-	--bar:SetParent(STORAGE)
 	bar:SetPoint("CENTER")
 
 	button.bar.watchframes[bar.handler] = nil
@@ -1382,7 +1350,7 @@ function NeuronFlyouts:Flyout_GetBar(button)
 	bar.index = id
 	bar.class = "bar"
 	bar.elapsed = 0
-	bar.gdata = { scale = 1 }
+	bar.data = { scale = 1 }
 	bar.objPrefix = "NeuronFlyoutButton"
 
 	bar.text:Hide()
@@ -1515,7 +1483,7 @@ function NeuronFlyouts:updateAnchors(button, elapsed)
 
 	button.elapsed = button.elapsed + elapsed
 
-	if (button.elapsed > GDB.throttle and NEURON.PEW) then
+	if (button.elapsed > DB.throttle and NEURON.PEW) then
 
 		if (not InCombatLockdown()) then
 			local anchor = tremove(needsUpdate)
@@ -1541,7 +1509,7 @@ function NeuronFlyouts:linkScanOnUpdate(button, elapsed)
 
 	button.elapsed = button.elapsed + elapsed
 
-	if (button.elapsed > GDB.throttle and NEURON.PEW) then
+	if (button.elapsed > DB.throttle and NEURON.PEW) then
 		-- scan X items per frame draw, where X is the for limit
 		for i=1,2 do
 			button.link = itemLinks[button.index]
@@ -1604,7 +1572,7 @@ function NeuronFlyouts:ANCHOR_DelayedUpdate(button, elapsed)
 
 	button.elapsed = button.elapsed + elapsed
 
-	if (button.elapsed > GDB.throttle and NEURON.PEW) then
+	if (button.elapsed > DB.throttle and NEURON.PEW) then
 
 		for anchor in pairs(ANCHORIndex) do
 			tinsert(needsUpdate, anchor)

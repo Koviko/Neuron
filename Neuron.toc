@@ -1,4 +1,4 @@
-## Interface: 70300
+## Interface: 80000
 ## Title: Neuron
 ## Notes: A macro-based action bar and object manager add-on
 ## Author: Britt Yazel (aka Soyier) and Connor Chenoweth (aka Maul)
@@ -16,7 +16,7 @@
 Libs\embeds.xml
 Localizations\Neuron_Localizations.xml
 
-
+Neuron-Defaults.lua
 Neuron.lua
 
 Utilities/DB-Fixer.lua
@@ -38,5 +38,6 @@ Bar-Modules/Neuron-Menu.lua
 Bar-Modules/Neuron-Pet.lua
 Bar-Modules/Neuron-Status.lua
 Bar-Modules/Neuron-Status.xml
+Bar-Modules/Neuron-Exit.lua
 
 Neuron-GUI.lua
