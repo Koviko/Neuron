@@ -954,8 +954,8 @@ function NeuronBar:Update(bar, show, hide)
 	bar.text:SetText(bar.data.name)
 	handler:SetAlpha(bar.data.alpha)
 
-	if NEURON.NeuronGUI.GUILoaded then
-		NEURON.NeuronGUI:RefreshEditor()
+	if Neuron.NeuronGUI.GUILoaded then
+		Neuron.NeuronGUI:RefreshEditor()
 	end
 end
 
@@ -1036,8 +1036,8 @@ function NeuronBar:SetFauxState(bar, state)
 		end
 	end
 
-	if NEURON.NeuronGUI.GUILoaded then
-		NEURON.NeuronGUI:RefreshEditor()
+	if Neuron.NeuronGUI.GUILoaded then
+		Neuron.NeuronGUI:RefreshEditor()
 	end
 end
 
@@ -1339,8 +1339,8 @@ function NeuronBar:OnClick(bar, ...)
 	elseif (click == "RightButton" and not bar.action and not down) then
 
 		bar.mousewheelfunc = nil
-		NEURON.NeuronGUI:RefreshEditor()
-		NEURON.NeuronGUI:ToggleEditor("show")
+		Neuron.NeuronGUI:RefreshEditor()
+		Neuron.NeuronGUI:ToggleEditor("show")
 	end
 
 end
@@ -1844,7 +1844,7 @@ function NeuronBar:ChangeBar(bar)
 		end
 	end
 
-	NEURON.NeuronGUI:RefreshEditor()
+	Neuron.NeuronGUI:RefreshEditor()
 
 	return newBar
 end
@@ -1902,8 +1902,8 @@ function NeuronBar:DeleteBar(bar)
 
 	bar.barDB[bar:GetID()] = nil
 
-	if NEURON.NeuronGUI.GUILoaded then
-		NEURON.NeuronGUI:RefreshEditor()
+	if Neuron.NeuronGUI.GUILoaded then
+		Neuron.NeuronGUI:RefreshEditor()
 	end
 end
 

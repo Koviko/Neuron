@@ -408,9 +408,6 @@ end
 
 function ACTIONBUTTON:LoadAux()
 
-	if Neuron.NeuronGUI then
-		Neuron.NeuronGUI:ObjEditor_CreateEditFrame(self, self.objTIndex)
-	end
 	Neuron.NeuronBinder:CreateBindFrame(self, self.objTIndex)
 
 end

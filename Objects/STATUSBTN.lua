@@ -1806,8 +1806,6 @@ end
 
 function STATUSBTN:LoadAux()
 
-	Neuron.NeuronGUI:SB_CreateEditFrame(self, self.objTIndex)
-
 end
 
 

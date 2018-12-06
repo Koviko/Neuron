@@ -2,12 +2,10 @@
 
 local addonName = ...
 
-local NEURON = Neuron
-
 local DB
 
-NEURON.NeuronGUI = Neuron:NewModule("GUI", "AceEvent-3.0", "AceHook-3.0")
-local NeuronGUI = NEURON.NeuronGUI
+Neuron.NeuronGUI = Neuron:NewModule("GUI", "AceEvent-3.0", "AceHook-3.0")
+local NeuronGUI = Neuron.NeuronGUI
 
 local L = LibStub("AceLocale-3.0"):GetLocale("Neuron")
 local AceGUI = LibStub("AceGUI-3.0")
@@ -29,7 +27,7 @@ local barEditOptionsContainer = {} --The container that houses the add/remove ba
 --- or setting up slash commands.
 function NeuronGUI:OnInitialize()
 
-    DB = NEURON.db.profile
+    DB = Neuron.db.profile
 
     NeuronGUI:LoadInterfaceOptions()
 
@@ -74,9 +72,9 @@ end
 
 function NeuronGUI:RefreshEditor()
 
-    if NEURON.CurrentBar then
-        renameBox:SetText(NEURON.CurrentBar.data.name)
-        editorFrame:SetStatusText("The currently selected bar is: " .. NEURON.CurrentBar.data.name)
+    if Neuron.CurrentBar then
+        renameBox:SetText(Neuron.CurrentBar.data.name)
+        editorFrame:SetStatusText("The currently selected bar is: " .. Neuron.CurrentBar.data.name)
     else
         renameBox:SetText("")
         editorFrame:SetStatusText("Please select a bar from the right to begin")
@@ -98,8 +96,8 @@ function NeuronGUI:CreateBarEditor()
     editorFrame:SetWidth("1000")
     editorFrame:SetHeight("700")
     editorFrame:EnableResize(false)
-    if NEURON.CurrentBar then
-        editorFrame:SetStatusText("The Currently Selected Bar is: " .. NEURON.CurrentBar.data.name)
+    if Neuron.CurrentBar then
+        editorFrame:SetStatusText("The Currently Selected Bar is: " .. Neuron.CurrentBar.data.name)
     else
         editorFrame:SetStatusText("Welcome to the Neuron editor, please select a bar to begin")
     end
@@ -163,20 +161,20 @@ end
 
 function NeuronGUI:PopulateBarList()
 
-    for _, bar in pairs(NEURON.BARIndex) do
+    for _, bar in pairs(Neuron.BARIndex) do
         local barLabel = AceGUI:Create("InteractiveLabel")
         barLabel:SetText(bar.data.name)
         barLabel:SetFont("Fonts\\FRIZQT__.TTF", 18)
         barLabel:SetFullWidth(true)
         barLabel:SetHighlight("Interface\\QuestFrame\\UI-QuestTitleHighlight")
-        if NEURON.CurrentBar == bar then
+        if Neuron.CurrentBar == bar then
             barLabel:SetColor(1,.9,0)
         end
         barLabel.bar = bar
-        barLabel:SetCallback("OnEnter", function(self) NEURON.NeuronBar:OnEnter(self.bar) end)
-        barLabel:SetCallback("OnLeave", function(self) NEURON.NeuronBar:OnLeave(self.bar) end)
+        barLabel:SetCallback("OnEnter", function(self) Neuron.NeuronBar:OnEnter(self.bar) end)
+        barLabel:SetCallback("OnLeave", function(self) Neuron.NeuronBar:OnLeave(self.bar) end)
         barLabel:SetCallback("OnClick", function(self)
-            NEURON.NeuronBar:ChangeBar(self.bar)
+            Neuron.NeuronBar:ChangeBar(self.bar)
             NeuronGUI:RefreshEditor()
             self:SetColor(1,.9,0)
         end)
@@ -198,7 +196,7 @@ function NeuronGUI:PopulateEditOptions(container)
 
     local deleteBarButton = AceGUI:Create("Button")
     deleteBarButton:SetText("Delete Current Bar")
-    if not NEURON.CurrentBar then
+    if not Neuron.CurrentBar then
         deleteBarButton:SetDisabled(true)
     end
     container:AddChild(deleteBarButton)
@@ -207,7 +205,7 @@ function NeuronGUI:PopulateEditOptions(container)
     ---populate the dropdown menu with available bar types
     local barTypes = {}
 
-    for class, info in pairs(NEURON.RegisteredBarData) do
+    for class, info in pairs(Neuron.RegisteredBarData) do
         if (info.barCreateMore or NeuronGUI:MissingBarCheck(class)) then
             barTypes[class] = info.barLabel
         end
@@ -225,8 +223,8 @@ end
 function NeuronGUI:PopulateRenameBar(container)
 
     renameBox = AceGUI:Create("EditBox")
-    if NEURON.CurrentBar then
-        renameBox:SetText(NEURON.CurrentBar.data.name)
+    if Neuron.CurrentBar then
+        renameBox:SetText(Neuron.CurrentBar.data.name)
     end
     renameBox:SetLabel("Rename selected bar")
 
@@ -251,13 +249,13 @@ end
 
 function NeuronGUI:updateBarName(editBox)
 
-    local bar = NEURON.CurrentBar
+    local bar = Neuron.CurrentBar
 
     if (bar) then
         bar.data.name = editBox:GetText()
         bar.text:SetText(bar.data.name)
 
-        NEURON.NeuronBar:SaveData(bar)
+        Neuron.NeuronBar:SaveData(bar)
 
         editBox:ClearFocus()
         NeuronGUI:RefreshEditor()
@@ -337,7 +335,7 @@ function NeuronGUI:LoadInterfaceOptions()
                         name = L["Display the Blizzard UI"],
                         desc = L["Shows / Hides the Default Blizzard UI"],
                         type = "toggle",
-                        set = function() NEURON:ToggleBlizzUI() end,
+                        set = function() Neuron:ToggleBlizzUI() end,
                         get = function() return DB.blizzbar end,
                         width = "full",
                     },
@@ -347,7 +345,7 @@ function NeuronGUI:LoadInterfaceOptions()
                         name = L["Display Minimap Button"],
                         desc = L["Toggles the minimap button."],
                         type = "toggle",
-                        set =  function() NEURON.NeuronMinimapIcon:ToggleIcon() end,
+                        set =  function() Neuron.NeuronMinimapIcon:ToggleIcon() end,
                         get = function() return not DB.NeuronIcon.hide end,
                         width = "full"
                     },
@@ -451,6 +449,6 @@ function NeuronGUI:LoadInterfaceOptions()
 
     LibStub("AceConfigRegistry-3.0"):ValidateOptionsTable(interfaceOptions, addonName)
     LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, interfaceOptions)
-    interfaceOptions.args.profile = LibStub("AceDBOptions-3.0"):GetOptionsTable(NEURON.db)
+    interfaceOptions.args.profile = LibStub("AceDBOptions-3.0"):GetOptionsTable(Neuron.db)
     LibStub("AceConfigDialog-3.0"):AddToBlizOptions(addonName, addonName)
 end
