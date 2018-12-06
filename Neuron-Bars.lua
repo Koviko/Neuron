@@ -1,35 +1,33 @@
 --Neuron, a World of Warcraft® user interface addon.
 
-local NEURON = Neuron
-local DB, SPEC, player, realm
 
-NEURON.NeuronBar = NEURON:NewModule("Bar", "AceEvent-3.0", "AceHook-3.0")
-local NeuronBar = NEURON.NeuronBar
+local DB
+
+Neuron.NeuronBar = Neuron:NewModule("Bar", "AceEvent-3.0", "AceHook-3.0")
+local NeuronBar = Neuron.NeuronBar
 
 local handlerMT = setmetatable({}, { __index = CreateFrame("Frame") })
 
-NEURON.BAR = setmetatable({}, {__index = CreateFrame("CheckButton")}) --Bar object template
-local BAR = NEURON.BAR
+Neuron.BAR = setmetatable({}, {__index = CreateFrame("CheckButton")}) --Bar object template
+local BAR = Neuron.BAR
 
 local TRASHCAN = CreateFrame("Frame", nil, UIParent)
 TRASHCAN:Hide()
 
-local BUTTON = NEURON.BUTTON
-
 local L = LibStub("AceLocale-3.0"):GetLocale("Neuron")
 
-local BARIndex = NEURON.BARIndex
-local BARNameIndex = NEURON.BARNameIndex
-local BTNIndex = NEURON.BTNIndex
+local BARIndex = Neuron.BARIndex
+local BARNameIndex = Neuron.BARNameIndex
+local BTNIndex = Neuron.BTNIndex
 
-local MAS = NEURON.MANAGED_ACTION_STATES
-local MBS = NEURON.MANAGED_BAR_STATES
+local MAS = Neuron.MANAGED_ACTION_STATES
+local MBS = Neuron.MANAGED_BAR_STATES
 
 local alphaDir, alphaTimer = 0, 0
 
 local autoHideIndex, alphaupIndex = {}, {}
 
-NEURON.AlphaUps = {
+Neuron.AlphaUps = {
 	L["Off"],
 	L["Mouseover"],
 	L["Combat"],
@@ -37,15 +35,15 @@ NEURON.AlphaUps = {
 	L["Retreat"],
 	L["Retreat + Mouseover"],
 }
-local alphaUps = NEURON.AlphaUps
+local alphaUps = Neuron.AlphaUps
 
 
-NEURON.BarShapes = {
+Neuron.BarShapes = {
 	L["Linear"],
 	L["Circle"],
 	L["Circle + One"],
 }
-local barShapes = NEURON.BarShapes
+local barShapes = Neuron.BarShapes
 
 
 local defaultBarOptions = {
@@ -90,35 +88,12 @@ local barStack = {}
 --- or setting up slash commands.
 function NeuronBar:OnInitialize()
 
-	DB = NEURON.db.profile
+	DB = Neuron.db.profile
 
-	NEURON:RegisterBarClass("bar", "ActionBar", L["Action Bar"], "Action Button", DB.bars, BTNIndex, DB.buttons, "CheckButton", "NeuronActionButtonTemplate", { __index = BUTTON }, 1000, true)
-
-	NEURON:RegisterGUIOptions("bar", {
-		AUTOHIDE = true,
-		SHOWGRID = true,
-		SPELLGLOW = true,
-		SNAPTO = true,
-		UPCLICKS = true,
-		DOWNCLICKS = true,
-		MULTISPEC = true,
-		HIDDEN = true,
-		LOCKBAR = true,
-		TOOLTIPS = true,
-		BINDTEXT = true,
-		MACROTEXT = true,
-		COUNTTEXT = true,
-		RANGEIND = true,
-		CDTEXT = true,
-		CDALPHA = true,
-		AURATEXT = true,
-		AURAIND = true
-	}, true, 115)
-
-	if NEURON.NeuronZoneAbilityBar then
-		NeuronBar.HideZoneAbilityBorder = NEURON.NeuronZoneAbilityBar.HideZoneAbilityBorder --this is so the slash function has access to this function
+	if Neuron.NeuronZoneAbilityBar then
+		NeuronBar.HideZoneAbilityBorder = Neuron.NeuronZoneAbilityBar.HideZoneAbilityBorder --this is so the slash function has access to this function
 	end
-	NEURON.CreateNewBar = NeuronBar.CreateNewBar --temp just so slash functions still work
+	Neuron.CreateNewBar = NeuronBar.CreateNewBar --temp just so slash functions still work
 
 	NeuronBar:CreateBarsAndButtons()
 end
@@ -189,7 +164,7 @@ function NeuronBar:CreateBarsAndButtons()
 			local object
 
 			for i=1+offset, 12+offset do
-				object = NEURON.NeuronButton:CreateNewObject("bar", i, true) --this calls the object (button) constructor
+				object = Neuron:CreateNewObject("bar", i, true) --this calls the object (button) constructor
 				NeuronBar:AddObjectToList(bar, object)
 			end
 
@@ -206,7 +181,7 @@ function NeuronBar:CreateBarsAndButtons()
 
 		for id,data in pairs(DB.buttons) do
 			if (data ~= nil) then
-				NEURON.NeuronButton:CreateNewObject("bar", id) --this calls the object (button) constructor
+				Neuron:CreateNewObject("bar", id) --this calls the object (button) constructor
 			end
 		end
 	end
@@ -235,7 +210,7 @@ function NeuronBar:controlOnUpdate(frame, elapsed)
 	for k,v in pairs(autoHideIndex) do
 		if (v~=nil) then
 
-			if not NEURON.ButtonEditMode and not NEURON.BarEditMode and not NEURON.BindingMode then
+			if not Neuron.ButtonEditMode and not Neuron.BarEditMode and not Neuron.BindingMode then
 
 				if (k:IsShown()) then
 					v:SetAlpha(1)
@@ -521,7 +496,7 @@ function NeuronBar:BuildStateMap(bar, remapState)
 
 		map, remap = (":"):split(states)
 
-		if (remapState == "stance" and NEURON.class == "ROGUE" and map == "1") then
+		if (remapState == "stance" and Neuron.class == "ROGUE" and map == "1") then
 			--map = "2"
 		end
 
@@ -647,8 +622,8 @@ function NeuronBar:CreateDriver(bar)
 	setmetatable(driver, { __index = handlerMT })
 
 	driver:SetID(bar:GetID())
-	--Dynamicly builds driver attributes based on stated in NEURON.STATEINDEX using localized attribute text from a above
-	for _, modifier in pairs(NEURON.STATEINDEX) do
+	--Dynamicly builds driver attributes based on stated in Neuron.STATEINDEX using localized attribute text from a above
+	for _, modifier in pairs(Neuron.STATEINDEX) do
 		local action = DRIVER_BASE_ACTION:gsub("<MODIFIER>", modifier)
 		driver:SetAttribute("_onstate-"..modifier, action)
 	end
@@ -657,9 +632,9 @@ function NeuronBar:CreateDriver(bar)
 
 	driver:HookScript("OnAttributeChanged",
 
-		function(self,name,value)
+			function(self,name,value)
 
-		end)
+			end)
 
 	driver:SetAllPoints(bar)
 
@@ -729,8 +704,8 @@ function NeuronBar:CreateHandler(bar)
 
 	handler:SetID(bar:GetID())
 
-	--Dynamicly builds handler actions based on states in NEURON.STATEINDEX using Global text
-	for _, modifier in pairs(NEURON.STATEINDEX) do
+	--Dynamicly builds handler actions based on states in Neuron.STATEINDEX using Global text
+	for _, modifier in pairs(Neuron.STATEINDEX) do
 		local action = HANDLER_BASE_ACTION:gsub("<MODIFIER>", modifier)
 		handler:SetAttribute("_onstate-"..modifier, action)
 	end
@@ -874,9 +849,9 @@ function NeuronBar:CreateHandler(bar)
 
 	handler:HookScript("OnAttributeChanged",
 
-		function(self,name,value)
+			function(self,name,value)
 
-		end)
+			end)
 
 
 	handler:SetAttribute("_childupdate", [[
@@ -1057,7 +1032,7 @@ function NeuronBar:SetFauxState(bar, state)
 		object = _G[bar.objPrefix..tostring(objID)]
 
 		if (object) then
-			NEURON.NeuronButton:SetFauxState(object, state)
+			object:SetFauxState(state)
 		end
 	end
 
@@ -1087,12 +1062,12 @@ function NeuronBar:LoadObjects(bar, init)
 		if (object) then
 
 			---all of these objects need to stay as "object:****" because which SetData/LoadData/etc is bar dependent. Symlinks are made to the asociated bar objects to these class functions
-			object:SetData(object, bar)
-			object:LoadData(object, spec, bar.handler:GetAttribute("activestate"))
-			object:SetAux(object)
-			object:SetType(object, nil, nil, init)
+			object:SetData(bar)
+			object:LoadData(spec, bar.handler:GetAttribute("activestate"))
+			object:SetType()
+			object:SetAux()
 
-			object:SetObjectVisibility(object)
+			object:SetObjectVisibility()
 
 			bar.objCount = bar.objCount + 1
 			bar.countChanged = true
@@ -1177,7 +1152,7 @@ function NeuronBar:SetObjectLoc(bar)
 			lastObj = object
 			num = num + 1
 			object:SetAttribute("barPos", num)
-			object:SetData(object, bar)
+			object:SetData(bar)
 		end
 	end
 
@@ -1261,7 +1236,7 @@ function NeuronBar:SetRemap_Stance(bar)
 		bar.data.remap = gsub(bar.data.remap, ";$", "")
 
 
-		if (NEURON.class == "ROGUE") then
+		if (Neuron.class == "ROGUE") then
 			bar.data.remap = bar.data.remap..";2:2"
 		end
 	end
@@ -1297,10 +1272,10 @@ function NeuronBar:ACTIONBAR_HIDEGRID(bar, ...)
 end
 
 function NeuronBar:ACTIVE_TALENT_GROUP_CHANGED(bar, ...)
-	if (NEURON.PEW) then
+	if (Neuron.PEW) then
 		bar.stateschanged = true
 		bar.vischanged = true
-		NEURON.NeuronBar:Update(bar)
+		Neuron.NeuronBar:Update(bar)
 	end
 end
 ----------------------------------------------------------------------
@@ -1353,12 +1328,12 @@ function NeuronBar:OnClick(bar, ...)
 		end
 
 	elseif (click == "MiddleButton") then
-		if (GetMouseFocus() ~= NEURON.CurrentBar) then
+		if (GetMouseFocus() ~= Neuron.CurrentBar) then
 			newBar = NeuronBar:ChangeBar(bar)
 		end
 
 		if (down) then
-			--NEURON:ConcealBar(nil, true)
+			--Neuron:ConcealBar(nil, true)
 		end
 
 	elseif (click == "RightButton" and not bar.action and not down) then
@@ -1383,7 +1358,7 @@ end
 
 
 function NeuronBar:OnLeave(bar, ...)
-	if (bar ~= NEURON.CurrentBar) then
+	if (bar ~= Neuron.CurrentBar) then
 		if (bar.data.conceal) then
 			bar:SetBackdropColor(1,0,0,0.4)
 		else
@@ -1391,7 +1366,7 @@ function NeuronBar:OnLeave(bar, ...)
 		end
 	end
 
-	if (bar ~= NEURON.CurrentBar) then
+	if (bar ~= Neuron.CurrentBar) then
 		bar.text:Hide()
 	end
 end
@@ -1488,13 +1463,13 @@ function NeuronBar:OnKeyUp(bar, key)
 end
 
 
-function NeuronBar:OnMouseWheel(delta)
+--[[function NeuronBar:OnMouseWheel(delta)
 	stackWatch:Show()
 
-	NeuronTooltipScan:SetOwner(UIParent, "ANCHOR_NONE")
-	NeuronTooltipScan:SetFrameStack()
+	--NeuronTooltipScan:SetOwner(UIParent, "ANCHOR_NONE")
+	--NeuronTooltipScan:SetFrameStack()
 
-	local objects = NEURON:GetParentKeys(NeuronTooltipScan)
+	local objects = Neuron:GetParentKeys(NeuronTooltipScan)
 	local _, bar, level, text, added
 
 	for k,v in pairs(objects) do
@@ -1519,7 +1494,7 @@ function NeuronBar:OnMouseWheel(delta)
 						end
 
 						if (not added) then
-							tinsert(barStack, bar)
+							table.insert(barStack, bar)
 						end
 					end
 				end
@@ -1527,16 +1502,16 @@ function NeuronBar:OnMouseWheel(delta)
 		end
 	end
 
-	bar = tremove(barStack, 1)
+	bar = table.remove(barStack, 1)
 
 	if (bar) then
 		NeuronBar:ChangeBar(bar)
 	end
-end
+end]]
 
 
 function NeuronBar:OnShow(bar)
-	if (bar == NEURON.CurrentBar) then
+	if (bar == Neuron.CurrentBar) then
 
 		if (bar.data.conceal) then
 			bar:SetBackdropColor(1,0,0,0.6)
@@ -1599,7 +1574,7 @@ end
 
 ---TODO: This is probably a source of inefficiency
 function NeuronBar:OnUpdate(bar, elapsed)
-	if (NEURON.PEW) then
+	if (Neuron.PEW) then
 
 		if (bar.elapsed) then
 			bar.elapsed = bar.elapsed + elapsed
@@ -1660,7 +1635,7 @@ function NeuronBar:UpdateObjectData(bar)
 		object = _G[bar.objPrefix..tostring(objID)]
 
 		if (object) then
-			object:SetData(object, bar)
+			object:SetData(bar)
 		end
 	end
 end
@@ -1672,7 +1647,7 @@ function NeuronBar:UpdateObjectVisibility(bar, show)
 		object = _G[bar.objPrefix..tostring(objID)]
 
 		if (object) then
-			object:SetObjectVisibility(object, show)
+			object:SetObjectVisibility(show)
 		end
 	end
 end
@@ -1680,7 +1655,7 @@ end
 
 
 function NeuronBar:CreateBar(index, class, id)
-	local data = NEURON.RegisteredBarData[class]
+	local data = Neuron.RegisteredBarData[class]
 	local newBar
 
 	if (data) then
@@ -1728,9 +1703,9 @@ function NeuronBar:CreateBar(index, class, id)
 		bar:SetWidth(375)
 		bar:SetHeight(40)
 		bar:SetBackdrop({bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-			edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-			tile = true, tileSize = 16, edgeSize = 12,
-			insets = {left = 4, right = 4, top = 4, bottom = 4}})
+						 edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
+						 tile = true, tileSize = 16, edgeSize = 12,
+						 insets = {left = 4, right = 4, top = 4, bottom = 4}})
 		bar:SetBackdropColor(0,0,0,0.4)
 		bar:SetBackdropBorderColor(0,0,0,0)
 		bar:SetFrameLevel(2)
@@ -1748,7 +1723,7 @@ function NeuronBar:CreateBar(index, class, id)
 		bar:SetScript("OnEvent", function(self, event, ...) NeuronBar:OnEvent(self, event, ...) end)
 		bar:SetScript("OnKeyDown", function(self, key, onupdate) NeuronBar:OnKeyDown(self, key, onupdate) end)
 		bar:SetScript("OnKeyUp", function(self, key) NeuronBar:OnKeyUp(self, key) end)
-		bar:SetScript("OnMouseWheel", function(delta) NeuronBar:OnMouseWheel(delta) end)
+		--bar:SetScript("OnMouseWheel", function(delta) NeuronBar:OnMouseWheel(delta) end)
 		bar:SetScript("OnShow", function(self) NeuronBar:OnShow(self) end)
 		bar:SetScript("OnHide", function(self) NeuronBar:OnHide(self) end)
 		bar:SetScript("OnUpdate", function(self, elapsed) NeuronBar:OnUpdate(self, elapsed) end)
@@ -1762,7 +1737,7 @@ function NeuronBar:CreateBar(index, class, id)
 		NeuronBar:CreateHandler(bar)
 		NeuronBar:CreateWatcher(bar)
 
-		NEURON.NeuronBar:LoadData(bar)
+		Neuron.NeuronBar:LoadData(bar)
 
 		if (not newBar) then
 			bar:Hide()
@@ -1778,7 +1753,7 @@ end
 
 
 function NeuronBar:CreateNewBar(class, id, firstRun)
-	if (class and NEURON.RegisteredBarData[class]) then
+	if (class and Neuron.RegisteredBarData[class]) then
 		local index = 1
 
 		for _ in ipairs(BARIndex) do
@@ -1811,17 +1786,17 @@ function NeuronBar:CreateNewBar(class, id, firstRun)
 
 		return bar
 	else
-		NEURON.PrintBarTypes()
+		Neuron.PrintBarTypes()
 	end
 end
 
 function NeuronBar:ChangeBar(bar)
 	local newBar = false
 
-	if (NEURON.PEW) then
+	if (Neuron.PEW) then
 
-		if (bar and NEURON.CurrentBar ~= bar) then
-			NEURON.CurrentBar = bar
+		if (bar and Neuron.CurrentBar ~= bar) then
+			Neuron.CurrentBar = bar
 
 			bar.selected = true
 			bar.action = nil
@@ -1838,7 +1813,7 @@ function NeuronBar:ChangeBar(bar)
 		end
 
 		if (not bar) then
-			NEURON.CurrentBar = nil
+			Neuron.CurrentBar = nil
 		elseif (bar.text) then
 			bar.text:Show()
 		end
@@ -1864,8 +1839,8 @@ function NeuronBar:ChangeBar(bar)
 			end
 		end
 
-		if (NEURON.CurrentBar) then
-			NeuronBar:OnEnter(NEURON.CurrentBar)
+		if (Neuron.CurrentBar) then
+			NeuronBar:OnEnter(Neuron.CurrentBar)
 		end
 	end
 
@@ -1907,7 +1882,7 @@ function NeuronBar:DeleteBar(bar)
 	bar:SetScript("OnEvent", function() end)
 	bar:SetScript("OnKeyDown", function() end)
 	bar:SetScript("OnKeyUp", function() end)
-	bar:SetScript("OnMouseWheel", function() end)
+	--bar:SetScript("OnMouseWheel", function() end)
 	bar:SetScript("OnShow", function() end)
 	bar:SetScript("OnHide", function() end)
 	bar:SetScript("OnUpdate", function() end)
@@ -1971,7 +1946,7 @@ function NeuronBar:AddObjectsToBar(bar, num)
 			if bar.objTable[id] and not bar.objTable[id]["bar"] then --checks to see if the object exists in the object table, and if the object belongs to a bar
 				object = bar.objTable[id]
 			else
-				object = NEURON.NeuronButton:CreateNewObject(bar.class, id)
+				object = Neuron:CreateNewObject(bar.class, id)
 			end
 			NeuronBar:AddObjectToList(bar, object)
 		end
@@ -2002,7 +1977,7 @@ function NeuronBar:RemoveObject(bar, object, objID)
 	object.config.anchoredBar = false
 
 	if (object.binder) then
-		NEURON.NeuronBinder:ClearBindings(object)
+		Neuron.NeuronBinder:ClearBindings(object)
 	end
 
 	NeuronBar:RemoveObjectFromList(bar, object, objID)
@@ -2071,9 +2046,9 @@ function NeuronBar:SetState(bar, msg, gui, checked, query)
 
 		if (not MAS[state]) then
 			if (not gui) then
-				NEURON:PrintStateList()
+				Neuron:PrintStateList()
 			else
-				NEURON:Print("GUI option error")
+				Neuron:Print("GUI option error")
 			end
 
 			return
@@ -2111,7 +2086,7 @@ function NeuronBar:SetState(bar, msg, gui, checked, query)
 			bar.data.pet = false
 
 
-			if (NEURON.class == "ROGUE" and bar.data.stealth) then
+			if (Neuron.class == "ROGUE" and bar.data.stealth) then
 				bar.data.stealth = false
 			end
 
@@ -2142,7 +2117,7 @@ function NeuronBar:SetState(bar, msg, gui, checked, query)
 
 						count = count + 1
 					else
-						NEURON:Print(states.." not formated properly and skipped")
+						Neuron:Print(states.." not formated properly and skipped")
 					end
 				end
 
@@ -2163,7 +2138,7 @@ function NeuronBar:SetState(bar, msg, gui, checked, query)
 			for states in gmatch(bar.data.hidestates, "custom%d+") do
 				bar.data.hidestates = bar.data.hidestates:gsub(states..":", "")
 			end
-			if not bar.data.hidestates then NEURON:Print("OOPS")
+			if not bar.data.hidestates then Neuron:Print("OOPS")
 			end
 		end
 
@@ -2178,19 +2153,19 @@ function NeuronBar:SetState(bar, msg, gui, checked, query)
 	elseif (not gui) then
 		wipe(statetable)
 
-		for k,v in pairs(NEURON.STATEINDEX) do
+		for k,v in pairs(Neuron.STATEINDEX) do
 
 			if (bar.data[k]) then
-				tinsert(statetable, k..": on")
+				table.insert(statetable, k..": on")
 			else
-				tinsert(statetable, k..": off")
+				table.insert(statetable, k..": off")
 			end
 		end
 
 		table.sort(statetable)
 
 		for k,v in ipairs(statetable) do
-			NEURON:Print(v)
+			Neuron:Print(v)
 		end
 	end
 
@@ -2205,29 +2180,29 @@ function NeuronBar:SetVisibility(bar, msg, gui, checked, query)
 		local toggle, index, num = (" "):split(msg)
 		toggle = toggle:lower()
 
-		if (toggle and NEURON.STATEINDEX[toggle]) then
+		if (toggle and Neuron.STATEINDEX[toggle]) then
 			if (index) then
 				num = index:match("%d+")
 
 				if (num) then
-					local hidestate = NEURON.STATEINDEX[toggle]..num
-					if (NEURON.STATES[hidestate]) or (toggle == "custom" and bar.data.customNames) then
+					local hidestate = Neuron.STATEINDEX[toggle]..num
+					if (Neuron.STATES[hidestate]) or (toggle == "custom" and bar.data.customNames) then
 						if (bar.data.hidestates:find(hidestate)) then
 							bar.data.hidestates = bar.data.hidestates:gsub(hidestate..":", "")
 						else
 							bar.data.hidestates = bar.data.hidestates..hidestate..":"
 						end
 					else
-						NEURON:Print(L["Invalid index"]); return
+						Neuron:Print(L["Invalid index"]); return
 					end
 
 				elseif (index == L["Show"]) then
-					local hidestate = NEURON.STATEINDEX[toggle].."%d+"
+					local hidestate = Neuron.STATEINDEX[toggle].."%d+"
 					bar.data.hidestates = bar.data.hidestates:gsub(hidestate..":", "")
 				elseif (index == L["Hide"]) then
-					local hidestate = NEURON.STATEINDEX[toggle]
+					local hidestate = Neuron.STATEINDEX[toggle]
 
-					for state in pairs(NEURON.STATES) do
+					for state in pairs(Neuron.STATES) do
 						if (state:find("^"..hidestate) and not bar.data.hidestates:find(state)) then
 							bar.data.hidestates = bar.data.hidestates..state..":"
 						end
@@ -2241,7 +2216,7 @@ function NeuronBar:SetVisibility(bar, msg, gui, checked, query)
 
 				local highindex = 0
 
-				for state,desc in pairs(NEURON.STATES) do
+				for state,desc in pairs(Neuron.STATES) do
 					index = state:match("%d+$")
 
 					if (index) then
@@ -2283,7 +2258,7 @@ function NeuronBar:SetVisibility(bar, msg, gui, checked, query)
 			bar.vischanged = true
 			NeuronBar:Update(bar)
 		else
-			NEURON:PrintStateList()
+			Neuron:PrintStateList()
 		end
 	else
 	end
@@ -2367,7 +2342,7 @@ function NeuronBar:spellGlowMod(bar, msg, gui)
 		end
 
 	elseif (not gui) then
-		NEURON:Print(L["Spellglow_Instructions"])
+		Neuron:Print(L["Spellglow_Instructions"])
 	end
 end
 
@@ -2508,7 +2483,15 @@ function NeuronBar:MultiSpecSet(bar, msg, gui, checked, query)
 		end
 	end
 
-	NEURON.NeuronButton:UpdateObjectSpec(bar)
+	for i, btnID in ipairs(bar.data.objectList) do
+		local button = _G[bar.objPrefix..tostring(btnID)]
+
+		if button then
+			button:UpdateButtonSpec(bar)
+		end
+
+	end
+
 	NeuronBar:Update(bar)
 end
 
@@ -2578,7 +2561,7 @@ function NeuronBar:barLockMod(bar, msg, gui)
 		end
 
 	elseif (not gui) then
-		NEURON:Print(L["Bar_Lock_Modifier_Instructions"])
+		Neuron:Print(L["Bar_Lock_Modifier_Instructions"])
 	end
 end
 
@@ -2637,7 +2620,7 @@ function NeuronBar:toolTipMod(bar, msg, gui)
 		end
 
 	elseif (not gui) then
-		NEURON:Print(L["Tooltip_Instructions"])
+		Neuron:Print(L["Tooltip_Instructions"])
 	end
 end
 
@@ -2701,7 +2684,7 @@ function NeuronBar:ShapeBar(bar, shape, gui, query)
 		NeuronBar:SetSize(bar)
 		NeuronBar:Update(bar)
 	elseif (not gui) then
-		NEURON:Print(L["Bar_Shapes_List"])
+		Neuron:Print(L["Bar_Shapes_List"])
 	end
 end
 
@@ -2738,7 +2721,7 @@ function NeuronBar:ColumnsSet(bar, command, gui, query, skipupdate)
 		end
 
 	elseif (not gui) then
-		NEURON:Print(L["Bar_Column_Instructions"])
+		Neuron:Print(L["Bar_Column_Instructions"])
 	end
 end
 
@@ -2761,7 +2744,7 @@ function NeuronBar:ArcStartSet(bar, command, gui, query, skipupdate)
 		end
 
 	elseif (not gui) then
-		NEURON:Print(L["Bar_ArcStart_Instructions"])
+		Neuron:Print(L["Bar_ArcStart_Instructions"])
 	end
 end
 
@@ -2784,7 +2767,7 @@ function NeuronBar:ArcLengthSet(bar, command, gui, query, skipupdate)
 		end
 
 	elseif (not gui) then
-		NEURON:Print(L["Bar_ArcLength_Instructions"])
+		Neuron:Print(L["Bar_ArcLength_Instructions"])
 	end
 end
 
@@ -2807,7 +2790,7 @@ function NeuronBar:PadHSet(bar, command, gui, query, skipupdate)
 		end
 
 	elseif (not gui) then
-		NEURON:Print(L["Horozontal_Padding_Instructions"])
+		Neuron:Print(L["Horozontal_Padding_Instructions"])
 	end
 end
 
@@ -2830,7 +2813,7 @@ function NeuronBar:PadVSet(bar, command, gui, query, skipupdate)
 		end
 
 	elseif (not gui) then
-		NEURON:Print(L["Vertical_Padding_Instructions"])
+		Neuron:Print(L["Vertical_Padding_Instructions"])
 	end
 end
 
@@ -2855,7 +2838,7 @@ function NeuronBar:PadHVSet(bar, command, gui, query, skipupdate)
 		end
 
 	elseif (not gui) then
-		NEURON:Print(L["Horozontal_and_Vertical_Padding_Instructions"])
+		Neuron:Print(L["Horozontal_and_Vertical_Padding_Instructions"])
 	end
 end
 
@@ -2887,16 +2870,16 @@ function NeuronBar:StrataSet(bar, command, gui, query)
 
 	local strata = tonumber(command)
 
-	if (strata and NEURON.Stratas[strata] and NEURON.Stratas[strata+1]) then
-		bar.data.barStrata = NEURON.Stratas[strata+1]
-		bar.data.objectStrata = NEURON.Stratas[strata]
+	if (strata and Neuron.Stratas[strata] and Neuron.Stratas[strata+1]) then
+		bar.data.barStrata = Neuron.Stratas[strata+1]
+		bar.data.objectStrata = Neuron.Stratas[strata]
 
 		NeuronBar:SetPosition(bar)
 		NeuronBar:UpdateObjectData(bar)
 		NeuronBar:Update(bar)
 
 	elseif (not gui) then
-		NEURON:Print(L["Bar_Strata_List"])
+		Neuron:Print(L["Bar_Strata_List"])
 	end
 end
 
@@ -2917,7 +2900,7 @@ function NeuronBar:AlphaSet(bar, command, gui, query, skipupdate)
 		end
 
 	elseif (not gui) then
-		NEURON:Print(L["Bar_Alpha_Instructions"])
+		Neuron:Print(L["Bar_Alpha_Instructions"])
 	end
 end
 
@@ -2997,7 +2980,7 @@ function NeuronBar:XAxisSet(bar, command, gui, query, skipupdate)
 		end
 
 	elseif (not gui) then
-		NEURON:Print(L["X_Position_Instructions"])
+		Neuron:Print(L["X_Position_Instructions"])
 	end
 end
 
@@ -3026,7 +3009,7 @@ function NeuronBar:YAxisSet(bar, command, gui, query, skipupdate)
 			NeuronBar:Update(bar)
 		end
 	elseif (not gui) then
-		NEURON:Print(L["Y_Position_Instructions"])
+		Neuron:Print(L["Y_Position_Instructions"])
 	end
 end
 
@@ -3270,7 +3253,7 @@ function NeuronBar:SetCastingTarget(bar, value, gui, checked, query)
 			end
 		end
 
-		NEURON.NeuronButton:UpdateMacroCastTargets()
+		Neuron:UpdateMacroCastTargets()
 		NeuronBar:Update(bar)
 	end
 end
