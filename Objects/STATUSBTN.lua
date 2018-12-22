@@ -1288,7 +1288,6 @@ function STATUSBTN:UpdateWidth(command, gui, query, skipupdate)
 		self.bar:SetSize()
 
 		if (not skipupdate) then
-			Neuron.NeuronGUI:Status_UpdateEditor()
 			self.bar:Update()
 		end
 	end
@@ -1318,7 +1317,6 @@ function STATUSBTN:UpdateHeight(command, gui, query, skipupdate)
 		self.bar:SetSize()
 
 		if (not skipupdate) then
-			Neuron.NeuronGUI:Status_UpdateEditor()
 			self.bar:Update()
 		end
 	end
@@ -1342,9 +1340,6 @@ function STATUSBTN:UpdateTexture(command, gui, query, skipupdate)
 		self.sb:SetStatusBarTexture(BarTextures[self.config.texture][self.config.orientation])
 		self.fbframe.feedback:SetStatusBarTexture(BarTextures[self.config.texture][self.config.orientation])
 
-		if (not skipupdate) then
-			Neuron.NeuronGUI:Status_UpdateEditor()
-		end
 
 	end
 
@@ -1368,9 +1363,7 @@ function STATUSBTN:UpdateBorder(command, gui, query, skipupdate)
 		self:SetBorder(self.sb, self.config, self.bordercolor)
 		self:SetBorder(self.fbframe.feedback, self.config, self.bordercolor)
 
-		if (not skipupdate) then
-			Neuron.NeuronGUI:Status_UpdateEditor()
-		end
+
 	end
 end
 
@@ -1421,7 +1414,6 @@ function STATUSBTN:UpdateOrientation(command, gui, query, skipupdate)
 		self.bar:SetSize()
 
 		if (not skipupdate) then
-			Neuron.NeuronGUI:Status_UpdateEditor()
 			self.bar:Update()
 		end
 	end

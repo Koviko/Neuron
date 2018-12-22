@@ -838,9 +838,6 @@ function BAR:Update(show, hide)
 	self.text:SetText(self.data.name)
 	handler:SetAlpha(self.data.alpha)
 
-	if (not hide and NeuronBarEditor and NeuronBarEditor:IsVisible()) then
-		Neuron.NeuronGUI:UpdateBarGUI()
-	end
 end
 
 
@@ -912,9 +909,6 @@ function BAR:SetFauxState(state)
 		object:SetFauxState(state)
 	end
 
-	if (NeuronObjectEditor and NeuronObjectEditor:IsVisible()) then
-		Neuron.NeuronGUI:UpdateObjectGUI()
-	end
 end
 
 
@@ -1222,23 +1216,10 @@ function BAR:OnClick(...)
 	elseif (click == "RightButton" and not self.action and not down) then
 		self.mousewheelfunc = nil
 
-		if (NeuronBarEditor) then
-			if (not newBar and NeuronBarEditor:IsVisible()) then
-				NeuronBarEditor:Hide()
-			else
-				NeuronBarEditor:Show()
-			end
-		end
+		Neuron.NeuronGUI:ToggleEditor(true)
 
-	elseif (not down) then
-		if (not newBar) then
-			--updateState(bar, 1)
-		end
 	end
 
-	if (not down and NeuronBarEditor and NeuronBarEditor:IsVisible()) then
-		Neuron.NeuronGUI:UpdateBarGUI(newBar)
-	end
 end
 
 
@@ -1606,9 +1587,6 @@ function BAR:DeleteBar()
 	table.remove(self.barDB, self:GetID()) --removes the bar from the database, along with all of its buttons
 	table.remove(Neuron.BARIndex, self.index)
 
-	if (NeuronBarEditor and NeuronBarEditor:IsVisible()) then
-		Neuron.NeuronGUI:UpdateBarGUI()
-	end
 end
 
 

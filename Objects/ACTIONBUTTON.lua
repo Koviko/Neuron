@@ -2038,9 +2038,6 @@ function ACTIONBUTTON:MACRO_OnReceiveDrag(preclick)
 
 	Neuron.startDrag = false
 
-	if (NeuronObjectEditor and NeuronObjectEditor:IsVisible()) then
-		Neuron.NeuronGUI:UpdateObjectGUI()
-	end
 end
 
 ---this is the function that fires when you begin dragging an item

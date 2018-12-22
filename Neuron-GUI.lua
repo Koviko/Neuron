@@ -61,11 +61,11 @@ end
 -----------------------------------------------------------------------------
 
 
-function NeuronGUI:ToggleEditor(hideorshow)
-    if hideorshow == "show" then
+function NeuronGUI:ToggleEditor(show)
+    if show then
         NeuronGUI:RefreshEditor()
         editorFrame:Show()
-    elseif hideorshow == "hide" then
+    else
         editorFrame:Hide()
     end
 end
@@ -101,7 +101,7 @@ function NeuronGUI:CreateBarEditor()
     else
         editorFrame:SetStatusText("Welcome to the Neuron editor, please select a bar to begin")
     end
-    editorFrame:SetCallback("OnClose", function() NeuronGUI:ToggleEditor("hide") end)
+    editorFrame:SetCallback("OnClose", function() NeuronGUI:ToggleEditor(false) end)
     editorFrame:SetLayout("Flow")
 
 
