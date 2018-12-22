@@ -61,13 +61,6 @@ local sbStrings = {
 
 Neuron.sbStrings = sbStrings
 
-local configDefaults = {
-	[1] = { sbType = "cast", cIndex = 1, lIndex = 2, rIndex = 3, showIcon = true},
-	[2] = { sbType = "xp", cIndex = 2, lIndex = 6, rIndex = 4, mIndex = 3, width = 450},
-	[3] = { sbType = "rep", cIndex = 3, lIndex = 2, rIndex = 4, mIndex = 6, width = 450},
-	[4] = { sbType = "mirror", cIndex = 1, lIndex = 2, rIndex = 3},
-}
-
 
 local BarUnits = {
 	[1] = "-none-",
@@ -395,8 +388,6 @@ end
 
 function STATUSBTN:repstrings_Update(line)
 
-	local DB = Neuron.db.profile
-
 	if (GetNumFactions() > 0) then
 		wipe(RepWatch)
 
@@ -435,11 +426,13 @@ function STATUSBTN:repstrings_Update(line)
 				local repData = self:SetRepWatch(name, hasFriendStatus, standing, min, max, value, colors)
 				RepWatch[i] = repData --set current reptable into growing RepWatch table
 
-				if (((line and type(line)~= "boolean") and line:find(name)) or DB.AutoWatch == i) then --this line automatically assings the most recently updated repData to RepWatch[0], and the "auto" option assigns RepWatch[0] to be shown
+				if (((line and type(line)~= "boolean") and line:find(name)) or self.data.autoWatch == i) then --this line automatically assigns the most recently updated repData to RepWatch[0], and the "auto" option assigns RepWatch[0] to be shown
 					RepWatch[0] = repData
-					DB.AutoWatch = i
+					self.data.autoWatch = i
 				end
+
 			end
+
 		end
 	end
 end
@@ -743,13 +736,11 @@ function STATUSBTN:CastBar_OnEvent(event, ...)
 		CastWatch[unit] = {}
 	end
 
-
-
 	if (event == "UNIT_SPELLCAST_START") then
 
 		local name, text, texture, startTime, endTime, isTradeSkill, castID, notInterruptible = UnitCastingInfo(unit)
 
-		if (not name or (not self.showTradeSkills and isTradeSkill)) then
+		if (not name) then
 			self:CastBar_Reset()
 			return
 		end
@@ -855,7 +846,7 @@ function STATUSBTN:CastBar_OnEvent(event, ...)
 
 			local name, text, texture, startTime, endTime, isTradeSkill = UnitCastingInfo(unit)
 
-			if (not name or (not self.sb.showTradeSkills and isTradeSkill)) then
+			if (not name) then
 				self:CastBar_Reset()
 				return
 			end
@@ -883,7 +874,7 @@ function STATUSBTN:CastBar_OnEvent(event, ...)
 
 		local name, text, texture, startTime, endTime, isTradeSkill, notInterruptible = UnitChannelInfo(unit)
 
-		if (not name or (not self.sb.showTradeSkills and isTradeSkill)) then
+		if (not name) then
 			self:CastBar_Reset()
 			return
 		end
@@ -931,7 +922,7 @@ function STATUSBTN:CastBar_OnEvent(event, ...)
 
 			local name, text, texture, startTime, endTime, isTradeSkill = UnitChannelInfo(unit)
 
-			if (not name or (not self.sb.showTradeSkills and isTradeSkill)) then
+			if (not name) then
 				self:CastBar_Reset()
 				return
 			end
@@ -1290,15 +1281,15 @@ function STATUSBTN:UpdateWidth(command, gui, query, skipupdate)
 
 		self:SetWidth(self.config.width)
 
-		Neuron.NeuronBar:SetObjectLoc(self.bar)
+		self.bar:SetObjectLoc()
 
-		Neuron.NeuronBar:SetPerimeter(self.bar)
+		self.bar:SetPerimeter()
 
-		Neuron.NeuronBar:SetSize(self.bar)
+		self.bar:SetSize()
 
 		if (not skipupdate) then
 			Neuron.NeuronGUI:Status_UpdateEditor()
-			Neuron.NeuronBar:Update(self.bar)
+			self.bar:Update()
 		end
 	end
 end
@@ -1320,15 +1311,15 @@ function STATUSBTN:UpdateHeight(command, gui, query, skipupdate)
 
 		self:SetHeight(self.config.height)
 
-		Neuron.NeuronBar:SetObjectLoc(self.bar)
+		self.bar:SetObjectLoc()
 
-		Neuron.NeuronBar:SetPerimeter(self.bar)
+		self.bar:SetPerimeter()
 
-		Neuron.NeuronBar:SetSize(self.bar)
+		self.bar:SetSize()
 
 		if (not skipupdate) then
 			Neuron.NeuronGUI:Status_UpdateEditor()
-			Neuron.NeuronBar:Update(self.bar)
+			self.bar:Update()
 		end
 	end
 end
@@ -1423,15 +1414,15 @@ function STATUSBTN:UpdateOrientation(command, gui, query, skipupdate)
 
 		self:SetHeight(self.config.height)
 
-		Neuron.NeuronBar:SetObjectLoc(self.bar)
+		self.bar:SetObjectLoc()
 
-		Neuron.NeuronBar:SetPerimeter(self.bar)
+		self.bar:SetPerimeter()
 
-		Neuron.NeuronBar:SetSize(self.bar)
+		self.bar:SetSize()
 
 		if (not skipupdate) then
 			Neuron.NeuronGUI:Status_UpdateEditor()
-			Neuron.NeuronBar:Update(self.bar)
+			self.bar:Update()
 		end
 	end
 end
@@ -1765,26 +1756,6 @@ end
 
 
 
-function STATUSBTN:LoadData(spec, state)
-
-	local DB = Neuron.db.profile
-
-	local id = self.id
-
-	if not DB.statusbtn[id] then
-		DB.statusbtn[id] = {}
-	end
-
-	self.DB = DB.statusbtn[id]
-
-	self.config = self.DB.config
-	self.keys = self.DB.keys
-	self.data = self.DB.data
-end
-
-
-
-
 function STATUSBTN:SetObjectVisibility(show)
 
 	if (show) then
@@ -1805,26 +1776,6 @@ end
 
 
 function STATUSBTN:LoadAux()
-
-end
-
-
-function STATUSBTN:SetDefaults(config)
-
-	if (config) then
-		for k,v in pairs(config) do
-			self.config[k] = v
-		end
-	end
-
-end
-
-
-
-
-function STATUSBTN:GetDefaults()
-
-	return configDefaults[self.id]
 
 end
 
@@ -1896,7 +1847,6 @@ function STATUSBTN:SetType(save)
 			self.sb.unit = BarUnits[self.data.unit]
 			self.sb.showIcon = self.config.showIcon
 
-			self.sb.showTradeSkills = true
 			self.sb.casting = false
 			self.sb.channeling = false
 			self.sb.holdTime = 0

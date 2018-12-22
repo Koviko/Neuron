@@ -41,11 +41,9 @@ end
 
 function ZONEABILITYBTN:OnUpdate(elapsed)
 
-	local DB = Neuron.db.profile
-
 	self.elapsed = self.elapsed + elapsed
 
-	if (self.elapsed > DB.throttle) then
+	if (self.elapsed > Neuron.THROTTLE) then
 
 		self:STANCE_UpdateButton(self.actionID)
 
@@ -60,6 +58,8 @@ function ZONEABILITYBTN:SetNeuronButtonTex()
 
 	local texture = ZONE_SPELL_ABILITY_TEXTURES_BASE[spellID] or ZONE_SPELL_ABILITY_TEXTURES_BASE_FALLBACK
 	self.style:SetTexture(texture)
+
+	self.style:Show() --this actually show/hide the fancy button theme surrounding the bar. If you wanted to do a toggle for the style, it should be here.
 end
 
 
@@ -77,13 +77,6 @@ function ZONEABILITYBTN:ZoneAbilityFrame_Update()
 	self.CurrentSpell = name;
 	self.iconframeicon:SetTexture(tex);
 	self:SetNeuronButtonTex()
-
-
-	if DB.zoneabilitybar[1].border then
-		self.style:Show()
-	else
-		self.style:Hide()
-	end
 
 
 	local charges, maxCharges, chargeStart, chargeDuration = GetSpellCharges(spellID);
@@ -189,40 +182,18 @@ function ZONEABILITYBTN:OnEnter(...)
 end
 
 
-function ZONEABILITYBTN:OnLeave()
-	GameTooltip:Hide()
-end
-
-
-function ZONEABILITYBTN:LoadData(spec, state)
-
-	local DB = Neuron.db.profile
-
-	local id = self.id
-
-	if not DB.zoneabilitybtn[id] then
-		DB.zoneabilitybtn[id] = {}
-	end
-
-	self.DB = DB.zoneabilitybtn[id]
-
-	self.config = self.DB.config
-	self.keys = self.DB.keys
-	self.data = self.DB.data
-end
-
 function ZONEABILITYBTN:SetObjectVisibility(show)
 
 	if (GetZoneAbilitySpellInfo() or show) then --set alpha instead of :Show or :Hide, to avoid taint and to allow the button to appear in combat
 		self:SetAlpha(1)
-	elseif not Neuron.ButtonEditMode and not Neuron.BarEditMode and not Neuron.BindingMode then
+	elseif not Neuron.buttonEditMode and not Neuron.barEditMode and not Neuron.bindingMode then
 		self:SetAlpha(0)
 	end
 end
 
 function ZONEABILITYBTN:LoadAux()
 	self.spellID = ZoneAbilitySpellID;
-	Neuron.NeuronBinder:CreateBindFrame(self, self.objTIndex)
+	Neuron.NeuronBinder:CreateBindFrame(self)
 	self.style = self:CreateTexture(nil, "OVERLAY")
 	self.style:SetPoint("CENTER", -2, 1)
 	self.style:SetWidth(190)
@@ -270,6 +241,7 @@ function ZONEABILITYBTN:SetType(save)
 	self:RegisterEvent("SPELLS_CHANGED")
 	self:RegisterEvent("ZONE_CHANGED")
 	self:RegisterEvent("PLAYER_ENTERING_WORLD")
+	self:RegisterEvent("SPELL_UPDATE_COOLDOWN")
 
 
 	self.actionID = self.id
@@ -286,37 +258,9 @@ function ZONEABILITYBTN:SetType(save)
 	self:SetScript("OnShow", function(self) self:OnShow() end)
 	self:SetScript("OnHide", function(self) self:OnHide() end)
 	self:SetScript("OnEnter", function(self, ...) self:OnEnter(...) end)
-	self:SetScript("OnLeave", function(self) self:OnLeave() end)
+	self:SetScript("OnLeave", GameTooltip_Hide)
 	self:SetScript("OnUpdate", function(self, elapsed) self:OnUpdate(elapsed) end)
 	self:SetScript("OnAttributeChanged", nil)
 
 	self:SetObjectVisibility()
-end
-
-function ZONEABILITYBTN:HideZoneAbilityBorder(bar, msg, gui, checked, query)
-	if (query) then
-		return Neuron.CurrentBar.data.border
-	end
-
-	if (gui) then
-
-		if (checked) then
-			Neuron.CurrentBar.data.border = true
-		else
-			Neuron.CurrentBar.data.border = false
-		end
-
-	else
-
-		local toggle = Neuron.CurrentBar.data.border
-
-		if (toggle) then
-			Neuron.CurrentBar.data.border = false
-		else
-			Neuron.CurrentBar.data.border = true
-		end
-	end
-
-	Neuron.NeuronBar:Update(bar)
-	self:UpdateFrame()
 end

@@ -22,31 +22,12 @@ function EXTRABTN:new(name)
 end
 
 
-
-function EXTRABTN:LoadData(spec, state)
-
-	local DB = Neuron.db.profile
-
-	local id = self.id
-
-	if not DB.extrabtn[id] then
-		DB.extrabtn[id] = {}
-	end
-
-	self.DB = DB.extrabtn[id]
-
-	self.config = self.DB.config
-	self.keys = self.DB.keys
-	self.data = self.DB.data
-
-end
-
 function EXTRABTN:SetObjectVisibility(show)
 
 	if HasExtraActionBar() or show then --set alpha instead of :Show or :Hide, to avoid taint and to allow the button to appear in combat
 		self:SetAlpha(1)
 
-	elseif not Neuron.ButtonEditMode and not Neuron.BarEditMode and not Neuron.BindingMode then
+	elseif not Neuron.buttonEditMode and not Neuron.barEditMode and not Neuron.bindingMode then
 		self:SetAlpha(0)
 	end
 
@@ -66,7 +47,7 @@ end
 
 function EXTRABTN:LoadAux()
 
-	Neuron.NeuronBinder:CreateBindFrame(self, self.objTIndex)
+	Neuron.NeuronBinder:CreateBindFrame(self)
 
 	self.style = self:CreateTexture(nil, "OVERLAY")
 	self.style:SetPoint("CENTER", -2, 1)
@@ -83,22 +64,15 @@ function EXTRABTN:ExtraButton_Update()
 
 	self:SetExtraButtonTex()
 
-	--This conditional is to show/hide the border of the button, but it ins't fully implemented yet
-	--Some people were hitting a bit be because this option didn't exist it seems
-
-	--[[if DB.extrabar[1].border then
-		button.style:Show()
-	else
-		button.style:Hide()
-	end]]
-
-	--button.style:Show()
+	self.style:Show()
 
 	local start, duration, enable = GetActionCooldown(self.actionID);
 
 	if (start) then
 		Neuron:SetTimer(self.iconframecooldown, start, duration, enable, self.cdText, self.cdcolor1, self.cdcolor2, self.cdAlpha)
 	end
+
+
 end
 
 
@@ -120,16 +94,14 @@ function EXTRABTN:OnEnter(...)
 end
 
 
-function EXTRABTN:OnLeave()
-	GameTooltip:Hide()
-end
-
 function EXTRABTN:SetType(save)
 
 	self:RegisterEvent("UPDATE_EXTRA_ACTIONBAR")
 	self:RegisterEvent("ZONE_CHANGED")
 	self:RegisterEvent("SPELLS_CHANGED")
 	self:RegisterEvent("PLAYER_ENTERING_WORLD")
+	self:RegisterEvent("SPELL_UPDATE_COOLDOWN")
+	self:RegisterUnitEvent("UNIT_AURA", "player")
 
 	self.actionID = 169
 
@@ -141,8 +113,8 @@ function EXTRABTN:SetType(save)
 
 	self:SetScript("OnEvent", function(self, event, ...) self:OnEvent(event, ...) end)
 	self:SetScript("OnEnter", function(self, ...) self:OnEnter(...) end)
-	self:SetScript("OnLeave", function(self) self:OnLeave() end)
-	self:HookScript("OnShow", function(self) self:ExtraButton_Update() end)
+	self:SetScript("OnLeave", GameTooltip_Hide)
+	self:SetScript("OnShow", function(self) self:ExtraButton_Update() end)
 
 	self:WrapScript(self, "OnShow", [[
 					for i=1,select('#',(":"):split(self:GetAttribute("hotkeys"))) do
@@ -159,6 +131,9 @@ function EXTRABTN:SetType(save)
 					]])
 
 
+	self:SetSkinned()
+
+
 end
 
 
@@ -168,12 +143,7 @@ function EXTRABTN:OnEvent(event, ...)
 	self:SetObjectVisibility()
 
 	if event == "PLAYER_ENTERING_WORLD" then
-		self:PLAYER_ENTERING_WORLD(event, ...)
+		Neuron.NeuronBinder:ApplyBindings(self)
 	end
 
-end
-
-function EXTRABTN:PLAYER_ENTERING_WORLD(event, ...)
-	if InCombatLockdown() then return end
-	Neuron.NeuronBinder:ApplyBindings(self)
 end

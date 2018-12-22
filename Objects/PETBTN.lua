@@ -7,9 +7,6 @@ Neuron.PETBTN = PETBTN
 
 local L = LibStub("AceLocale-3.0"):GetLocale("Neuron")
 
-
-local sIndex = Neuron.sIndex
-
 local alphaTimer, alphaDir = 0, 0
 
 
@@ -27,8 +24,7 @@ end
 -----utilities
 
 --this function gets called from the controlOnUpdate in the Neuron.lua file
-function PETBTN.controlOnUpdate(frame, elapsed)
-	local alphaTimer, alphaDir = 0, 0
+function PETBTN.controlOnUpdate(elapsed)
 
 	alphaTimer = alphaTimer + elapsed * 2.5
 
@@ -127,12 +123,12 @@ function PETBTN:PET_UpdateState(isActive, allowed, enabled)
 
 	if (enabled) then
 
-		self.AutoCastStart(self.shine)
+		Neuron.ACTIONBUTTON.AutoCastStart(self.shine)
 		self.autocastable:Hide()
 		self.autocastenabled = true
 
 	else
-		self.AutoCastStop(self.shine)
+		Neuron.ACTIONBUTTON.AutoCastStop(self.shine)
 
 		if (allowed) then
 			self.autocastable:Show()
@@ -152,7 +148,7 @@ function PETBTN:PET_UpdateCooldown()
 
 		local start, duration, enable = GetPetActionCooldown(actionID)
 
-		if (duration and duration >= DB.timerLimit and self.iconframeaurawatch.active) then
+		if (duration and duration >= Neuron.TIMERLIMIT and self.iconframeaurawatch.active) then
 			self.auraQueue = self.iconframeaurawatch.queueinfo
 			self.iconframeaurawatch.duration = 0
 			self.iconframeaurawatch:Hide()
@@ -192,8 +188,8 @@ function PETBTN:PET_UpdateOnEvent(state)
 			self.actionSpell = spell
 		end
 
-		if (self.actionSpell and sIndex[self.actionSpell:lower()]) then
-			self.spellID = sIndex[self.actionSpell:lower()].spellID
+		if (self.actionSpell and NeuronSpellCache[self.actionSpell:lower()]) then
+			self.spellID = NeuronSpellCache[self.actionSpell:lower()].spellID
 		else
 			self.spellID = nil
 		end
@@ -220,9 +216,12 @@ end
 
 function PETBTN:OnUpdate(elapsed)
 
-	local DB = Neuron.db.profile
+	if not(self.updateGroup) then
+		self.updateGroup = math.random(Neuron.NUM_UPDATE_GROUPS) --random number between 1 and numUpdateGroups (which is 15)
+	end
 
-	if (self.elapsed > DB.throttle) then --throttle down this code to ease up on the CPU a bit
+	if (self.updateGroup == Neuron.curUpdateGroup) then
+
 		if (self.mac_flash) then
 
 			self.mac_flashing = true
@@ -255,11 +254,8 @@ function PETBTN:OnUpdate(elapsed)
 			end
 		end
 
-
-		self.elapsed = 0
 	end
 
-	self.elapsed = self.elapsed + elapsed
 
 end
 
@@ -311,7 +307,7 @@ function PETBTN:PLAYER_ENTERING_WORLD(event, ...)
 	self:SetObjectVisibility(true) --have to set true at login or the buttons on the bar don't show
 
 	---This part is so that the grid get's set properly on login
-	C_Timer.After(2, function() Neuron.NeuronBar:UpdateObjectVisibility(self.bar) end)
+	C_Timer.After(2, function() self.bar:UpdateObjectVisibility() end)
 
 end
 
@@ -354,7 +350,7 @@ function PETBTN:OnDragStart()
 
 	for i,bar in pairs(Neuron.BARIndex) do
 		if bar.class == "pet" then
-			Neuron.NeuronBar:UpdateObjectVisibility(bar, true)
+			bar:UpdateObjectVisibility(true)
 		end
 	end
 end
@@ -432,28 +428,11 @@ function PETBTN:OnLeave()
 end
 
 
-function PETBTN:LoadData(spec, state)
-
-	local DB = Neuron.db.profile
-
-	local id = self.id
-
-	if not DB.petbtn[id] then
-		DB.petbtn[id] = {}
-	end
-
-	self.DB = DB.petbtn[id]
-
-	self.config = self.DB.config
-	self.keys = self.DB.keys
-	self.data = self.DB.data
-end
-
 function PETBTN:SetObjectVisibility(show)
 
 	if (show or self.showGrid) then
 		self:SetAlpha(1)
-	elseif not self.HasPetAction(self.actionID) and (not Neuron.ButtonEditMode and not Neuron.BarEditMode and not Neuron.BindingMode) then
+	elseif not self.HasPetAction(self.actionID) and (not Neuron.buttonEditMode and not Neuron.barEditMode and not Neuron.bindingMode) then
 		self:SetAlpha(0)
 	end
 
@@ -463,7 +442,7 @@ end
 
 function PETBTN:LoadAux()
 
-	Neuron.NeuronBinder:CreateBindFrame(self, self.objTIndex)
+	Neuron.NeuronBinder:CreateBindFrame(self)
 
 end
 

@@ -171,10 +171,10 @@ function NeuronGUI:PopulateBarList()
             barLabel:SetColor(1,.9,0)
         end
         barLabel.bar = bar
-        barLabel:SetCallback("OnEnter", function(self) Neuron.NeuronBar:OnEnter(self.bar) end)
-        barLabel:SetCallback("OnLeave", function(self) Neuron.NeuronBar:OnLeave(self.bar) end)
+        barLabel:SetCallback("OnEnter", function(self) self.bar:OnEnter() end)
+        barLabel:SetCallback("OnLeave", function(self) self.bar:OnLeave() end)
         barLabel:SetCallback("OnClick", function(self)
-            Neuron.NeuronBar:ChangeBar(self.bar)
+            self.bar:ChangeBar()
             NeuronGUI:RefreshEditor()
             self:SetColor(1,.9,0)
         end)
@@ -205,7 +205,7 @@ function NeuronGUI:PopulateEditOptions(container)
     ---populate the dropdown menu with available bar types
     local barTypes = {}
 
-    for class, info in pairs(Neuron.RegisteredBarData) do
+    for class, info in pairs(Neuron.registeredBarData) do
         if (info.barCreateMore or NeuronGUI:MissingBarCheck(class)) then
             barTypes[class] = info.barLabel
         end
@@ -254,8 +254,6 @@ function NeuronGUI:updateBarName(editBox)
     if (bar) then
         bar.data.name = editBox:GetText()
         bar.text:SetText(bar.data.name)
-
-        Neuron.NeuronBar:SaveData(bar)
 
         editBox:ClearFocus()
         NeuronGUI:RefreshEditor()

@@ -4,9 +4,6 @@
 
 local DB
 
-Neuron.NeuronMinimapIcon = Neuron:NewModule("NeuronMinimapIcon")
-local NeuronMinimapIcon = Neuron.NeuronMinimapIcon
-
 local L = LibStub("AceLocale-3.0"):GetLocale("Neuron")
 
 local neuronIconLDB
@@ -15,13 +12,8 @@ local icon
 
 
 -------------------------------------------------------------------------
---------------------Start of Functions-----------------------------------
 -------------------------------------------------------------------------
-
---- **OnInitialize**, which is called directly after the addon is fully loaded.
---- do init tasks here, like loading the Saved Variables
---- or setting up slash commands.
-function NeuronMinimapIcon:OnInitialize()
+function Neuron:Minimap_IconInitialize()
 
     DB = Neuron.db.profile
 
@@ -29,8 +21,8 @@ function NeuronMinimapIcon:OnInitialize()
         type = "launcher",
         text = "Neuron",
         icon = "Interface\\AddOns\\Neuron\\Images\\static_icon",
-        OnClick = function(frame, button) NeuronMinimapIcon:OnClickHandler(frame, button) end,
-        OnTooltipShow = function(tooltip) NeuronMinimapIcon:TooltipHandler(tooltip) end,
+        OnClick = function(frame, button) Neuron:Minimap_OnClickHandler(frame, button) end,
+        OnTooltipShow = function(tooltip) Neuron:Minimap_TooltipHandler(tooltip) end,
     })
 
     icon = LibStub("LibDBIcon-1.0")
@@ -41,7 +33,7 @@ end
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
-function NeuronMinimapIcon:OnClickHandler(frame, button)
+function Neuron:Minimap_OnClickHandler(frame, button)
 
     if (InCombatLockdown()) then
         return
@@ -61,7 +53,7 @@ function NeuronMinimapIcon:OnClickHandler(frame, button)
 
 end
 
-function NeuronMinimapIcon:TooltipHandler(tooltip)
+function Neuron:Minimap_TooltipHandler(tooltip)
 
     tooltip:SetText("Neuron", 1, 1, 1)
     tooltip:AddLine(L["Left-Click to Configure Bars"])
@@ -73,7 +65,7 @@ function NeuronMinimapIcon:TooltipHandler(tooltip)
 
 end
 
-function NeuronMinimapIcon:ToggleIcon()
+function Neuron:Minimap_ToggleIcon()
 
     if DB.NeuronIcon.hide == false then
         icon:Hide("Neuron")

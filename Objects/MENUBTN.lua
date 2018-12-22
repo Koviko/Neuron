@@ -53,25 +53,17 @@ function MENUBTN:SetData( bar)
 end
 
 
-function MENUBTN:LoadData(spec, state)
+function MENUBTN:SetType(reload)
 
-	local DB = Neuron.db.profile
+	if not reload then --only run this code on the first SetType, not the reloads after pet battles and such
+		self:RegisterEvent("PET_BATTLE_CLOSE")
+		self:SetScript("OnEvent", function(self, event, ...) self:OnEvent(event, ...) end)
 
-	local id = self.id
-
-	if not DB.menubtn[id] then
-		DB.menubtn[id] = {}
+		if not Neuron:IsHooked("MoveMicroButtons") then --we need to intercept MoveMicroButtons for during pet battles
+			Neuron:RawHook("MoveMicroButtons", function(...) MENUBTN.ModifiedMoveMicroButtons(...) end, true)
+		end
 	end
 
-	self.DB = DB.menubtn[id]
-
-	self.config = self.DB.config
-	self.keys = self.DB.keys
-	self.data = self.DB.data
-
-end
-
-function MENUBTN:SetType(save)
 	if (menuElements[self.id]) then
 
 		self:SetWidth(menuElements[self.id]:GetWidth()-2)
@@ -95,4 +87,33 @@ function MENUBTN:SetType(save)
 		self.element:SetScale(1)
 	end
 
+end
+
+function MENUBTN:OnEvent(event, ...)
+	---we have to reload SetType to put the buttons back at the end of the pet battle
+	self:SetType(true)
+end
+
+
+---this overwrites the default MoveMicroButtons and basically just extends it to reposition all the other buttons as well, not just the 1st and 6th.
+---This is necessary for petbattles, otherwise there's no menubar
+function MENUBTN.ModifiedMoveMicroButtons(anchor, anchorTo, relAnchor, x, y, isStacked)
+
+	menuElements[1]:ClearAllPoints();
+	menuElements[1]:SetPoint(anchor, anchorTo, relAnchor, x-5, y+4);
+
+	for i=2,11 do
+
+		menuElements[i]:ClearAllPoints();
+		menuElements[i]:SetPoint("BOTTOMLEFT", menuElements[i-1], "BOTTOMRIGHT", -2,0)
+
+		if isStacked and i == 6 then
+			menuElements[6]:ClearAllPoints();
+			menuElements[6]:SetPoint("TOPLEFT", menuElements[1], "BOTTOMLEFT", 0,2)
+		end
+
+	end
+
+	MainMenuMicroButton_RepositionAlerts();
+	UpdateMicroButtons();
 end

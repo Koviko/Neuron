@@ -22,33 +22,12 @@ function EXITBTN:new(name)
 end
 
 
-
-function EXITBTN:LoadData(spec, state)
-
-	local DB = Neuron.db.profile
-
-	local id = self.id
-
-	if not DB.exitbtn[id] then
-		DB.exitbtn[id] = {}
-	end
-
-	self.DB = DB.exitbtn[id]
-
-	self.config = self.DB.config
-	self.keys = self.DB.keys
-	self.data = self.DB.data
-end
-
-
 function EXITBTN:SetObjectVisibility(show)
 
 	if CanExitVehicle() or show then --set alpha instead of :Show or :Hide, to avoid taint and to allow the button to appear in combat
-
 		self:SetAlpha(1)
 		self:SetExitButtonIcon()
-
-	elseif not Neuron.ButtonEditMode and not Neuron.BarEditMode and not Neuron.BindingMode then
+	elseif not Neuron.buttonEditMode and not Neuron.barEditMode and not Neuron.bindingMode then
 		self:SetAlpha(0)
 	end
 
@@ -59,9 +38,9 @@ function EXITBTN:SetExitButtonIcon()
 	local texture
 
 	if UnitOnTaxi("player") then
-		texture = Neuron.SpecialActions.taxi
+		texture = Neuron.SPECIALACTIONS.taxi
 	else
-		texture = Neuron.SpecialActions.vehicle
+		texture = Neuron.SPECIALACTIONS.vehicle
 	end
 
 	self.iconframeicon:SetTexture(texture)
@@ -108,19 +87,23 @@ end
 
 function EXITBTN:OnEnter()
 	if ( UnitOnTaxi("player") ) then
-
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 		GameTooltip:ClearLines()
 		GameTooltip:SetText(TAXI_CANCEL, 1, 1, 1);
 		GameTooltip:AddLine(TAXI_CANCEL_DESCRIPTION, NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b, true);
+		GameTooltip:Show();
+	else
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+		GameTooltip:ClearLines()
+		GameTooltip:SetText(CANCEL);
 		GameTooltip:Show();
 	end
 end
 
 function EXITBTN:OnClick()
 	if ( UnitOnTaxi("player") ) then
-		TaxiRequestEarlyLanding();
+		TaxiRequestEarlyLanding()
 	else
-		VehicleExit();
+		VehicleExit()
 	end
 end

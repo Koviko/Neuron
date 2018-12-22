@@ -1,4 +1,4 @@
-## Interface: 80000
+## Interface: 80100
 ## Title: Neuron
 ## Notes: A macro-based action bar and object manager add-on
 ## Author: Britt Yazel (aka Soyier) and Connor Chenoweth (aka Maul)
@@ -16,15 +16,16 @@
 Libs\embeds.xml
 Localizations\Neuron_Localizations.xml
 
+Neuron-DB-Defaults.lua
 Neuron-Defaults.lua
 Neuron.lua
 Neuron-States.lua
-
 
 Utilities/DB-Fixer.lua
 
 
 Objects/BUTTON.lua
+Objects/BAR.lua
 Objects/ACTIONBUTTON.lua
 Objects/BAGBTN.lua
 Objects/EXITBTN.lua
@@ -34,22 +35,21 @@ Objects/PETBTN.lua
 Objects/STATUSBTN.lua
 Objects/ZONEABILITYBTN.lua
 Objects/ACTIONBUTTON_FLYOUTBTN.lua
+Objects/BAR_SNAPTO.lua
 
-Neuron-Buttons.lua
-Neuron-Bars.lua
+Neuron-GeneralFunctions.lua
 Neuron-KeyBinder.lua
-Neuron-SnapTo.lua
+Neuron-Console.lua
 Neuron-MinimapIcon.lua
 
-Neuron.xml
+XML/NeuronActionButtonTemplate.xml
+XML/NeuronAnchorButtonTemplate.xml
+XML/NeuronBarTemplate.xml
+XML/NeuronBindFrameTemplate.xml
+XML/NeuronCheckButtonTextureTemplate.xml
+XML/NeuronNonSecureButtonTemplate.xml
+XML/NeuronStatusBarTemplate.xml
 
-Bar-Modules/Neuron-Extra.lua
-Bar-Modules/Neuron-ZoneAbility.lua
-Bar-Modules/Neuron-Bag.lua
-Bar-Modules/Neuron-Menu.lua
-Bar-Modules/Neuron-Pet.lua
-Bar-Modules/Neuron-Status.lua
-Bar-Modules/Neuron-Status.xml
-Bar-Modules/Neuron-Exit.lua
+Startup.lua
 
 Neuron-GUI.lua

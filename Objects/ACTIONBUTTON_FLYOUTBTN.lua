@@ -3,19 +3,19 @@
 
 local ACTIONBUTTON = Neuron.ACTIONBUTTON
 
-local itemTooltips, itemLinks, spellTooltips, companionTooltips = {}, {}, {}, {}
-local needsUpdate, scanData = {}, {}
+local scanData = {}
 
 
 local petIcons = {}
 
 --[[ Item Cache ]]
-
 local itemCache = {}
 local bagsToCache = {[0]=true,[1]=true,[2]=true,[3]=true,[4]=true,["Worn"]=true }
 local timerTimes = {} -- indexed by arbitrary name, the duration to run the timer
 local timersRunning = {} -- indexed numerically, timers that are running
 local cacheTimeout
+
+
 local flyoutsNeedFilled
 local firstLogin
 
@@ -23,17 +23,37 @@ local firstLogin
 local barsToUpdate = {}
 
 
-local tooltipStrings = {}
-
-
 local FOBARIndex, FOBTNIndex, ANCHORIndex = {}, {}, {}
 
-
-local tIndex = Neuron.tIndex
+Neuron.FOBARIndex = FOBARIndex
+Neuron.FOBTNIndex = FOBTNIndex
+Neuron.ANCHORIndex = ANCHORIndex
 
 --[[ Timer Management ]]
 local timerFrame
 
+
+--I think this is only used in Neuron-Flyouts
+local POINTS = {
+	R = "RIGHT",
+	L = "LEFT",
+	T = "TOP",
+	B = "BOTTOM",
+	TL = "TOPLEFT",
+	TR = "TOPRIGHT",
+	BL = "BOTTOMLEFT",
+	BR = "BOTTOMRIGHT",
+	C = "CENTER",
+	RIGHT = "RIGHT",
+	LEFT = "LEFT",
+	TOP = "TOP",
+	BOTTOM = "BOTTOM",
+	TOPLEFT = "TOPLEFT",
+	TOPRIGHT = "TOPRIGHT",
+	BOTTOMLEFT = "BOTTOMLEFT",
+	BOTTOMRIGHT = "BOTTOMRIGHT",
+	CENTER = "CENTER"
+}
 
 ------------------------------------------------------------------------------
 
@@ -76,7 +96,7 @@ end
 
 local function timerFrame_OnUpdate(frame, elapsed)
 
-	if Neuron.PEW then
+	if Neuron.enteredWorld then
 		local tick
 		local times = timerTimes
 		local timers = timersRunning
@@ -184,12 +204,12 @@ function ACTIONBUTTON:filter_mount(data)
 
 	for ckey in gmatch(keys, "[^,]+") do
 		local cmd, arg = (ckey):match("%s*(%p*)(%P+)")
-		local any = compare(arg,("Any"))
-		local flying = compare(arg,"Flying")
-		local land = compare(arg,"Land")
-		local fflying = compare(arg,"FFlying") or compare(arg,"FavFlying")
-		local fland = compare(arg,"FLand") or compare(arg,"FavLand")
-		local favorite = compare(arg,"Favorite") or fflying or fland
+		local any = compare(string.lower(arg),"any")
+		local flying = compare(string.lower(arg),"flying")
+		local land = compare(string.lower(arg),"land")
+		local fflying = compare(string.lower(arg),"fflying") or compare(string.lower(arg),"favflying")
+		local fland = compare(string.lower(arg),"fland") or compare(string.lower(arg),"favland")
+		local favorite = compare(string.lower(arg),"favorite") or fflying or fland
 		arg = arg:lower()
 
 		for i,mountID in ipairs(C_MountJournal.GetMountIDs()) do
@@ -234,7 +254,7 @@ function ACTIONBUTTON:filter_profession(data)
 		end
 	end
 
-	local professions
+	local professions = {}
 
 	local keys, found, mandatory, optional = self.flyout.keys, 0, 0, 0
 	local profSpells = {}
@@ -243,9 +263,9 @@ function ACTIONBUTTON:filter_profession(data)
 		local cmd, arg = (ckey):match("%s*(%p*)(%P+)")
 
 		RunForEach(function(entry) table.insert(professions,entry or false) end, GetProfessions())
-		local any = compare(arg,"Any")
-		local primaryOnly = compare(arg,"Primary")
-		local secondaryOnly = compare(arg,"Secondary")
+		local any = compare(string.lower(arg),"any")
+		local primaryOnly = compare(string.lower(arg),"primary")
+		local secondaryOnly = compare(string.lower(arg),"secondary")
 		arg = arg:lower()
 		for index,profession in pairs(professions) do
 			if profession then
@@ -300,8 +320,8 @@ function ACTIONBUTTON:filter_toy(data)
 
 	for ckey in gmatch(keys, "[^,]+") do
 		local cmd, arg = (ckey):match("%s*(%p*)(%P+)")
-		local any = compare(arg,"Any")
-		local favorite = compare(arg,"Favorite")
+		local any = compare(string.lower(arg),"any")
+		local favorite = compare(string.lower(arg),"favorite")
 		arg = arg:lower()
 
 
@@ -376,13 +396,13 @@ end
 
 function ACTIONBUTTON:updateFlyoutBars(elapsed)
 
-	if (not InCombatLockdown() and Neuron.PEW) then  --Workarout for protected taint if UI reload in combat
+	if (not InCombatLockdown() and Neuron.enteredWorld) then  --Workarout for protected taint if UI reload in combat
 		local bar = table.remove(barsToUpdate) ---this does nothing. It makes bar empty
 
 		if (bar) then
-			Neuron.NeuronBar:SetObjectLoc(bar)
-			Neuron.NeuronBar:SetPerimeter(bar)
-			Neuron.NeuronBar:SetSize(bar)
+			bar:SetObjectLoc()
+			bar:SetPerimeter()
+			bar:SetSize()
 		else
 			self:Hide()
 		end
@@ -450,6 +470,7 @@ function ACTIONBUTTON:Flyout_UpdateButtons(init)
 
 
 				elseif (source == "item") then
+
 					button.macroshow = spell
 
 					if (IsEquippableItem(spell)) then
@@ -470,6 +491,7 @@ function ACTIONBUTTON:Flyout_UpdateButtons(init)
 					end
 
 					local itemname, _, _, _, _, _, _, _, _, itemicon = GetItemInfo(spell)
+
 
 					button.macroicon = itemicon
 					button.data.macro_Icon = itemicon
@@ -564,11 +586,11 @@ function ACTIONBUTTON:Flyout_UpdateBar()
 	end
 
 	if (flyout.point) then
-		pointA = flyout.point:match("%a+"):upper() pointA = Neuron.Points[pointA] or "RIGHT"
+		pointA = flyout.point:match("%a+"):upper() pointA = POINTS[pointA] or "RIGHT"
 	end
 
 	if (flyout.relPoint) then
-		pointB = flyout.relPoint:upper() pointB = Neuron.Points[pointB] or "LEFT"
+		pointB = flyout.relPoint:upper() pointB = POINTS[pointB] or "LEFT"
 	end
 
 	if (flyout.colrad and tonumber(flyout.colrad)) then
@@ -810,7 +832,7 @@ function ACTIONBUTTON:Flyout_GetButton()
 	end
 
 
-	local button = self:new("NeuronFlyoutButton"..id)
+	local button = self:new(self:GetName().."_".."NeuronFlyoutButton"..id)
 
 	button.elapsed = 0
 
@@ -857,8 +879,8 @@ function ACTIONBUTTON:Flyout_GetButton()
 	button:SetScript("OnEvent", function(self, event, ...) self:Flyout_OnEvent(event, ...) end)
 	--button:SetScript("OnUpdate", self:GetScript("OnUpdate"))
 
-	button:HookScript("OnShow", function(self) self:MACRO_UpdateButton(); self:MACRO_UpdateIcon(); self:MACRO_UpdateState() end)
-	button:HookScript("OnHide", function(self) self:MACRO_UpdateButton(); self:MACRO_UpdateIcon(); self:MACRO_UpdateState() end)
+	button:SetScript("OnShow", function(self) self:MACRO_UpdateButton(); self:MACRO_UpdateIcon(); self:MACRO_UpdateState() end)
+	button:SetScript("OnHide", function(self) self:MACRO_UpdateButton(); self:MACRO_UpdateIcon(); self:MACRO_UpdateState() end)
 
 	button:WrapScript(button, "OnClick", [[
 			local button = self:GetParent():GetParent()
@@ -873,6 +895,8 @@ function ACTIONBUTTON:Flyout_GetButton()
 
 
 	button:SetData(self.flyout.bar)
+
+	button:Flyout_UpdateButtons(true)
 	button:SetSkinned(true)
 	button:Show()
 
@@ -902,7 +926,7 @@ function ACTIONBUTTON:Flyout_OnEvent(event, ...)
 		local bag = ...
 		if bag>=0 and bag<=4 then
 			bagsToCache[bag] = true
-			if Neuron.PEW then
+			if Neuron.enteredWorld then
 				ACTIONBUTTON.StartTimer(0.05, ACTIONBUTTON.CacheBags)
 			end
 		end
@@ -940,12 +964,10 @@ function ACTIONBUTTON:Flyout_GetBar()
 		id = id + 1
 	end
 
-	local bar = CreateFrame("CheckButton", "NeuronFlyoutBar"..id, UIParent, "NeuronBarTemplate")
-
-	setmetatable(bar, {__index = ACTIONBUTTON})
+	local bar = Neuron.BAR:new(self:GetName().."_".."NeuronFlyoutBar"..id)
 
 	bar.index = id
-	bar.class = "bar"
+	bar.class = "FlyoutBar"
 	bar.elapsed = 0
 	bar.data = { scale = 1 }
 	bar.objPrefix = "NeuronFlyoutButton"
@@ -960,7 +982,11 @@ function ACTIONBUTTON:Flyout_GetBar()
 	bar:SetFrameLevel(2)
 
 	bar:RegisterEvent("PLAYER_ENTERING_WORLD")
-	bar:SetScript("OnEvent", function(self) Neuron.NeuronBar:SetObjectLoc(self) Neuron.NeuronBar:SetPerimeter(self) Neuron.NeuronBar:SetSize(self) end)
+	bar:SetScript("OnEvent", function(self) self:SetObjectLoc() self:SetPerimeter() self:SetSize() end)
+
+	if not bar.data.objectList then
+		bar.data.objectList = {}
+	end
 
 	bar:Hide()
 
