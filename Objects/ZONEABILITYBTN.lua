@@ -241,7 +241,6 @@ end
 
 function ZONEABILITYBTN:SetType(save)
 
-	self:RegisterUnitEvent("UNIT_AURA", "player")
 	self:RegisterEvent("SPELLS_CHANGED", "OnEvent")
 	self:RegisterEvent("ZONE_CHANGED", "OnEvent")
 	self:RegisterEvent("PLAYER_ENTERING_WORLD", "OnEvent")

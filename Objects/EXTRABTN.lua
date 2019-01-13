@@ -120,7 +120,6 @@ function EXTRABTN:SetType(save)
 	self:RegisterEvent("SPELLS_CHANGED", "OnEvent")
 	self:RegisterEvent("PLAYER_ENTERING_WORLD", "OnEvent")
 	self:RegisterEvent("SPELL_UPDATE_COOLDOWN", "OnEvent")
-	self:RegisterUnitEvent("UNIT_AURA", "player")
 
 	self.actionID = 169
 

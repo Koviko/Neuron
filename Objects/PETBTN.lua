@@ -235,9 +235,6 @@ function PETBTN:UNIT_FLAGS(event, ...)
 end
 
 
-PETBTN.UNIT_AURA = PETBTN.UNIT_FLAGS
-
-
 function PETBTN:PET_BAR_UPDATE_COOLDOWN(event, ...)
 	self:PET_UpdateCooldown()
 end
@@ -418,7 +415,6 @@ function PETBTN:SetType(save)
 	self:RegisterEvent("PLAYER_ENTERING_WORLD")
 	self:RegisterEvent("UNIT_PET")
 	self:RegisterEvent("UNIT_FLAGS")
-	self:RegisterEvent("UNIT_AURA")
 
 	self.actionID = self.id
 

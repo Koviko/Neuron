@@ -128,8 +128,6 @@ Neuron.SPECIALACTIONS = {
 	taxi = "Interface\\Vehicles\\UI-Vehicles-Button-Exit-Up",
 }
 
-Neuron.unitAuras = { player = {}, target = {}, focus = {} }
-
 Neuron.THROTTLE = 0.2
 Neuron.TIMERLIMIT = 4
 Neuron.SNAPTO_TOLLERANCE = 28
@@ -204,16 +202,11 @@ function Neuron:OnEnable()
 	Neuron:RegisterEvent("CHARACTER_POINTS_CHANGED")
 	Neuron:RegisterEvent("LEARNED_SPELL_IN_TAB")
 	Neuron:RegisterEvent("COMPANION_LEARNED")
-	Neuron:RegisterEvent("UNIT_PET")
 	Neuron:RegisterEvent("TOYS_UPDATED")
 	Neuron:RegisterEvent("PET_JOURNAL_LIST_UPDATE")
-
 	Neuron:RegisterEvent("ACTIONBAR_SHOWGRID")
-	Neuron:RegisterEvent("UNIT_AURA")
-	Neuron:RegisterEvent("UNIT_SPELLCAST_SENT")
-	Neuron:RegisterEvent("UNIT_SPELLCAST_START")
-	Neuron:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
-	Neuron:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
+	Neuron:RegisterEvent("UNIT_PET")
+
 
 
 	Neuron:UpdateStanceStrings()
@@ -343,59 +336,7 @@ function Neuron:ACTIONBAR_SHOWGRID()
 	Neuron.startDrag = true
 end
 
-function Neuron:UNIT_AURA(_, ...)
-	local unit = select(1,...)
-	if (Neuron.unitAuras[unit]) then
-		if (... == "player") then
-			Neuron.ACTIONBUTTON.updateAuraInfo(unit)
-		end
-	end
-end
 
-function Neuron:UNIT_SPELLCAST_SENT(_, ...)
-	local unit = select(1,...)
-	if (Neuron.unitAuras[unit]) then
-		if (... == "player") then
-			Neuron.ACTIONBUTTON.updateAuraInfo(unit)
-		end
-	end
-end
-
-function Neuron:UNIT_SPELLCAST_START(_, ...)
-	local unit = select(1,...)
-	if (Neuron.unitAuras[unit]) then
-		if (... == "player") then
-			Neuron.ACTIONBUTTON.updateAuraInfo(unit)
-		end
-	end
-end
-
-function Neuron:UNIT_SPELLCAST_SUCCEEDED(_, ...)
-	local unit = select(1,...)
-	if (Neuron.unitAuras[unit]) then
-		if (... == "player") then
-			Neuron.ACTIONBUTTON.updateAuraInfo(unit)
-		end
-	end
-end
-
-function Neuron:UNIT_SPELLCAST_CHANNEL_START(_, ...)
-	local unit = select(1,...)
-	if (Neuron.unitAuras[unit]) then
-		if (... == "player") then
-			Neuron.ACTIONBUTTON.updateAuraInfo(unit)
-		end
-	end
-end
-
-function Neuron:UNIT_SPELLCAST_SUCCEEDED(_, ...)
-	local unit = select(1,...)
-	if (Neuron.unitAuras[unit]) then
-		if (... == "player") then
-			Neuron.ACTIONBUTTON.updateAuraInfo(unit)
-		end
-	end
-end
 
 -------------------------------------------------------------------------
 --------------------Profiles---------------------------------------------

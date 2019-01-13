@@ -88,41 +88,6 @@ end
 
 
 
-function ACTIONBUTTON.updateAuraInfo(unit)
-
-	local uai_index, uai_spell, uai_count, uai_duration, uai_timeLeft, uai_caster, uai_spellID, _
-	uai_index = 1
-
-	wipe(Neuron.unitAuras[unit])
-
-	repeat
-		uai_spell, _, uai_count, _, uai_duration, uai_timeLeft, uai_caster, _, _, uai_spellID = UnitAura(unit, uai_index, "HELPFUL")
-
-		if (uai_duration and (uai_caster == "player" or uai_caster == "pet")) then
-			Neuron.unitAuras[unit][uai_spell:lower()] = "buff"..":"..uai_duration..":"..uai_timeLeft..":"..uai_count
-			Neuron.unitAuras[unit][uai_spell:lower().."()"] = "buff"..":"..uai_duration..":"..uai_timeLeft..":"..uai_count
-		end
-
-		uai_index = uai_index + 1
-
-	until (not uai_spell)
-
-	uai_index = 1
-
-	repeat
-		uai_spell, _, uai_count, _, uai_duration, uai_timeLeft, uai_caster = UnitAura(unit, uai_index, "HARMFUL")
-
-		if (uai_duration and (uai_caster == "player" or uai_caster == "pet")) then
-			Neuron.unitAuras[unit][uai_spell:lower()] = "debuff"..":"..uai_duration..":"..uai_timeLeft..":"..uai_count
-			Neuron.unitAuras[unit][uai_spell:lower().."()"] = "debuff"..":"..uai_duration..":"..uai_timeLeft..":"..uai_count
-		end
-
-		uai_index = uai_index + 1
-
-	until (not uai_spell)
-end
-
-
 
 
 function ACTIONBUTTON:LoadData(spec, state)
@@ -195,7 +160,6 @@ function ACTIONBUTTON:SetUpEvents()
 	self:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED")
 	self:RegisterEvent("UNIT_SPELLCAST_FAILED")
 	self:RegisterEvent("UNIT_PET")
-	self:RegisterEvent("UNIT_AURA")
 	self:RegisterEvent("UNIT_ENTERED_VEHICLE")
 	self:RegisterEvent("UNIT_ENTERING_VEHICLE")
 	self:RegisterEvent("UNIT_EXITED_VEHICLE")
@@ -225,7 +189,7 @@ function ACTIONBUTTON:SetUpEvents()
 	--when changing states or going in or out of range, this bucket is meant to catch all of these events
 	--[[self:RegisterBucketEvent({"ACTIONBAR_UPDATE_STATE", "SPELL_UPDATE_COOLDOWN", "UPDATE_SHAPESHIFT_COOLDOWN",
 	                          "BAG_UPDATE_COOLDOWN", "UPDATE_SHAPESHIFT_FORM", "CURRENT_SPELL_CAST_CHANGED",
-	                          "ACTIONBAR_UPDATE_COOLDOWN", "UNIT_AURA", "UPDATE_UI_WIDGET",
+	                          "ACTIONBAR_UPDATE_COOLDOWN", "UPDATE_UI_WIDGET",
 	                          "PLAYER_STARTED_MOVING", "PLAYER_STOPPED_MOVING", "BAG_UPDATE"}, 0.1, "UpdateState")]]
 
 	--this is meant to catch all the events when switching targets
@@ -992,23 +956,6 @@ end
 
 
 ACTIONBUTTON.BAG_UPDATE = ACTIONBUTTON.BAG_UPDATE_COOLDOWN
-
-
-function ACTIONBUTTON:UNIT_AURA(...)
-	local unit = select(1, ...)
-
-	if (Neuron.unitAuras[unit]) then
-		self:UpdateAuraWatch(self, unit, self.macrospell)
-
-		if (unit == "player") then
-			self:UpdateData(...)
-			self:UpdateTimers()
-		end
-	end
-end
-
-
-ACTIONBUTTON.UPDATE_MOUSEOVER_UNIT = ACTIONBUTTON.UNIT_AURA
 
 
 
